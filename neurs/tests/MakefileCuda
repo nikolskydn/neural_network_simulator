@@ -1,0 +1,11 @@
+CXX=g++-4.9
+CXXFLAGS=-std=c++14
+SRCS=$(wildcard *.cpp)
+TRGS=$(SRCS:%.cpp=%_cuda)
+
+$(TRGS): %_cuda: %.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L../impl/cuda -lneurscuda -L/usr/local/cuda/lib64 -lcudart
+
+clean:
+	rm -f $(TRGS)
+

@@ -1,0 +1,11 @@
+CXX=g++-4.9
+CXXFLAGS=-std=c++14
+SRCS=$(wildcard *.cpp)
+TRGS=$(SRCS:%.cpp=%_cpu)
+
+$(TRGS): %_cpu: %.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L../impl/cpu -lneurscpu
+
+clean:
+	rm -f $(TRGS)
+

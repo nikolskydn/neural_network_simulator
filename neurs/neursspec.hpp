@@ -1,0 +1,75 @@
+/** @addtogroup Neurs
+ * @{*/
+
+/** @file */
+
+#ifndef _NNetworkSimulatorNeursSpecNDN2017_
+#define _NNetworkSimulatorNeursSpecNDN2017_
+
+#include "neurs.hpp"
+
+namespace NNSimulator {
+
+    template<class T> class Neurs;
+
+    //! Нейрон со специальным параметром для тестирования. \details Класс предназначен для демонстрации создания различных моделей нейрона.
+    template<class T> class NeursSpec : public Neurs<T> {
+
+        using Neurs<T>::t_;
+        using Neurs<T>::N_;
+        using Neurs<T>::V_;
+        using Neurs<T>::I;
+        using Neurs<T>::I_;
+        using Neurs<T>::pImpl;
+
+        //! Некоторый специальный параметр.
+        T paramSpec {0.1};
+
+        public:
+
+            //! Конструктор.
+            explicit NeursSpec() :  Neurs<T>()  {}
+
+            //! Деструктор.
+            ~NeursSpec() = default;
+
+            //! Копирующий конструктор.
+            NeursSpec( const NeursSpec& ) = delete;
+
+            //! Оператор присваивания.
+            NeursSpec& operator=( const NeursSpec& ) = delete;
+
+            //! Перемещающий конструктор.
+            NeursSpec( const NeursSpec&& ) = delete;
+
+            //! Перемещающий оператор присваивания.
+            NeursSpec& operator=( const NeursSpec&& ) = delete;
+
+             
+            //! Вычисляет изменение состояния нейронов за промежуток времени dt.
+            virtual void performStepTime(const T & dt) final
+            {
+                pImpl->performStepTimeSpec( dt, paramSpec, I(), t_, V_ );
+            }
+
+            //! \~russian Метод вывода параметров в поток. 
+            virtual std::ostream& write( std::ostream& ostr ) const final
+            {
+                return (Neurs<T>::write(ostr) << '\t' << paramSpec);
+            }
+
+            //! \~russian Метод ввода параметров из потока.  
+            virtual std::istream& read( std::istream& istr ) final
+            {
+                return (Neurs<T>::read(istr) >> paramSpec);
+            }
+
+    };
+
+
+}
+
+#endif
+
+/*@}*/
+
