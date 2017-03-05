@@ -17,12 +17,14 @@ namespace NNSimulator {
         //! Интерфейс метода для реализаций изменения состояния нейронов NeursSpec. \details Изменение потенциала \f$V\f$ за промежуток времени \f$dt\f$определяется следующим выражением \f$V=V+specParam\cdot I\cdot dt\f$, где \f$I\f$ --- ток, \f$specParam\f$ --- некоторый параметр.  
         virtual void performStepTimeSpec(
                 const T & dt, 
-                const T & paramSpec,
                 const std::valarray<T> & I,
+                const T & VPeak,
+                const T & VReset,
+                const T & paramSpec,
                 T & t,
-                std::valarray<T> & V 
+                std::valarray<T> & V, 
+                std::valarray<bool> & mask
         ) = 0;
-
     };
 }
 

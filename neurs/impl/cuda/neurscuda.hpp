@@ -18,10 +18,13 @@ namespace NNSimulator {
         //! Реализация изменения состояния для модели нейронов, реализованных в классе NeursSpec. 
         virtual void performStepTimeSpec(
                 const T & dt, 
-                const T & paramSpec,
                 const std::valarray<T> & I,
+                const T & VPeak,
+                const T & VReset,
+                const T & paramSpec,
                 T & t,
-                std::valarray<T> & V 
+                std::valarray<T> & V, 
+                std::valarray<bool> & mask
         ) final ;
     };
 

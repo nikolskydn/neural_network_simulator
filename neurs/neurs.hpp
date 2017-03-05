@@ -40,6 +40,12 @@ namespace NNSimulator {
             //! Вектор мембранных потенциалов.
             std::valarray<T> V_;
 
+            //! Предельное значение потенциала.
+            T VPeak_;
+
+            //! Значение потенциала после спайка.
+            T VReset_;
+
             //! Маска, хранящая спайки.
             std::valarray<bool> mask_;
 
@@ -111,21 +117,27 @@ namespace NNSimulator {
                 return ptr;
             }
 
-            //! \~russian Метод вывода параметров в поток. 
+            //! Метод вывода параметров в поток. \details Порядок записи: - N_ - t_ - V_ - mask_ - VPeak_ - VReset_.
             virtual std::ostream& write( std::ostream& ostr ) const 
             {
                 ostr << N_ << '\t' << t_ << '\t';
-                for( const auto & e: V_ ) ostr << std::setw(10) << e << ' ' ;
+                for( const auto & e: V_ ) ostr << std::setw(5) << e << ' ' ;  
                 ostr << '\t';
+                for( const auto & e: mask_ ) ostr << std::setw(5) << e << ' ' ;  
+                ostr << '\t';
+                ostr << VPeak_ << ' ' << VReset_ << '\t';
                 return ostr;
             } 
 
-            //! \~russian Метод ввода параметров из потока.  
+            //! Метод ввода параметров из потока. \details Порядок чтения: - N_ - t_ - V_ - mask_ - VPeak_ - VReset_. 
             virtual std::istream& read( std::istream& istr ) 
             {
                 istr >> N_  >> t_;
                 V_.resize(N_);
+                mask_.resize(N_);
                 for( auto & e: V_ ) istr >> e;
+                for( auto & e: mask_ ) istr >> e;
+                istr >> VPeak_ >> VReset_;
                 return istr;
             }
 

@@ -8,6 +8,8 @@
 
 #include "neurs.hpp"
 
+#include <iostream>
+
 namespace NNSimulator {
 
     template<class T> class Neurs;
@@ -18,12 +20,17 @@ namespace NNSimulator {
         using Neurs<T>::t_;
         using Neurs<T>::N_;
         using Neurs<T>::V_;
+        using Neurs<T>::VPeak_;
+        using Neurs<T>::VReset_;
+        using Neurs<T>::mask_;
         using Neurs<T>::I;
         using Neurs<T>::I_;
         using Neurs<T>::pImpl;
 
-        //! Некоторый специальный параметр.
-        T paramSpec {0.1};
+        protected: 
+
+            //! Некоторый специальный параметр.
+            T paramSpec_ {0.1};
 
         public:
 
@@ -49,24 +56,22 @@ namespace NNSimulator {
             //! Вычисляет изменение состояния нейронов за промежуток времени dt.
             virtual void performStepTime(const T & dt) final
             {
-                pImpl->performStepTimeSpec( dt, paramSpec, I(), t_, V_ );
+                pImpl->performStepTimeSpec( dt, I(), VPeak_, VReset_, paramSpec_, t_, V_, mask_ );
             }
 
-            //! \~russian Метод вывода параметров в поток. 
+            //! Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const final
             {
-                return (Neurs<T>::write(ostr) << '\t' << paramSpec);
+                return (Neurs<T>::write(ostr) << '\t' << paramSpec_);
             }
 
-            //! \~russian Метод ввода параметров из потока.  
+            //! Метод ввода параметров из потока.  
             virtual std::istream& read( std::istream& istr ) final
             {
-                return (Neurs<T>::read(istr) >> paramSpec);
+                return (Neurs<T>::read(istr) >> paramSpec_);
             }
 
     };
-
-
 }
 
 #endif
