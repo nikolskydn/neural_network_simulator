@@ -11,7 +11,7 @@
 
 namespace NNSimulator {
 
-    __global__ void performStepTimeSpecKernel( 
+    __device__ void performStepTimeSpecKernelD( 
         const float *dt, 
         const float *I, 
         const float *VPeak, 
@@ -33,6 +33,19 @@ namespace NNSimulator {
         mask[i] = V[i] > *VPeak;
     }
 
+    __global__ void performStepTimeSpecKernelG( 
+        const float *dt, 
+        const float *I, 
+        const float *VPeak, 
+        const float *VReset, 
+        const float *paramSpec, 
+        float *t, 
+        float *V,
+        bool *mask 
+    ) 
+    {
+        performStepTimeSpecKernelD( dt, I, VPeak, VReset, paramSpec, t, V, mask );
+    }
 
     //! Полная специализация метода performStepTimeSpec() для float.
     template<> 
@@ -79,7 +92,7 @@ namespace NNSimulator {
         cudaMemcpy( VDev, &V[0], nSize, cudaMemcpyHostToDevice );
         cudaMemcpy( maskDev, &mask[0], bSize, cudaMemcpyHostToDevice );
 
-        performStepTimeSpecKernel<<< 1, n >>>( dtDev, IDev, VPeakDev, VResetDev, paramSpecDev, tDev, VDev, maskDev );
+        performStepTimeSpecKernelG<<< 1, n >>>( dtDev, IDev, VPeakDev, VResetDev, paramSpecDev, tDev, VDev, maskDev );
 
         cudaMemcpy( &t, tDev, size, cudaMemcpyDeviceToHost );
         cudaMemcpy( &V[0], VDev, nSize, cudaMemcpyDeviceToHost );

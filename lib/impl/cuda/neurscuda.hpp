@@ -14,7 +14,6 @@ namespace NNSimulator {
     //! Реализации методов изменения состояний нейронов на графическом процессоре.
     template<class T> class NeursImplCuda : public NeursImpl<T> {
     public:
-
         //! Реализация изменения состояния для модели нейронов, реализованных в классе NeursSpec. 
         virtual void performStepTimeSpec(
                 const T & dt, 
@@ -27,7 +26,6 @@ namespace NNSimulator {
                 std::valarray<bool> & mask
         ) final ;
     };
-
 }
 
 #endif
