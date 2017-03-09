@@ -1,1 +1,7 @@
 *.so
+.cproject
+.project
+.settings/
+Debug/
+Release/
+neurs/main.cpp
