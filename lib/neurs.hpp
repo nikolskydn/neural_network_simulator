@@ -91,7 +91,10 @@ namespace NNSimulator {
             virtual void performStepTime( const T & dt ) = 0;
 
             //! Устанавливает указатель на вектор со значениями синаптических токов.
-            void setCurrents( std::valarray<T> & I ) { I_ = &I; } // !!!!!
+            void setCurrents( const std::valarray<T> & I ) { I_ = &I; } // !!!!!
+
+            //! Ссылка на массив потенциалов. 
+            const std::valarray<T> & getPotentials() const noexcept { return V_; }
 
             //! Перечисление с типами моделей нейронов.
             enum ChildId : size_t
