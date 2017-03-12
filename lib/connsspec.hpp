@@ -19,7 +19,9 @@ namespace NNSimulator {
         using Conns<T>::N_;
         using Conns<T>::I_;
         using Conns<T>::V;
-        using Conns<T>::V_;
+        using Conns<T>::mask;
+        //using Conns<T>::V_;
+        //using Conns<T>::mask_;
         using Conns<T>::pImpl;
 
         //! Некоторый специальный параметр.
@@ -45,17 +47,28 @@ namespace NNSimulator {
             //! Перемещающий оператор присваивания.
             ConnsSpec& operator=( const ConnsSpec&& ) = delete;
 
+            //! Инициализация перед вызовами performStepTime().
+            virtual void performStepTimeInit() final
+            {
+                pImpl->performStepTimeSpecInit( I_.size() );
+            }
              
             //! Вычисляет изменение состояния нейронов за промежуток времени dt.
             virtual void performStepTime(const T & dt) final
             {
-                pImpl->performStepTimeSpec( dt, paramSpec, V(), t_, I_ );
+                pImpl->performStepTimeSpec( dt, paramSpec, V(), mask(), t_, I_ );
+            }
+
+            //!  Освобождение ресурсов после PerformStepTime().
+            virtual void performStepTimeFinalize() final 
+            {
+                pImpl->performStepTimeSpecFinalize();
             }
 
             //! \~russian Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const final
             {
-                return (Conns<T>::write(ostr) << '\t' << paramSpec);
+                return (Conns<T>::write(ostr)  << paramSpec << ' ');
             }
 
             //! \~russian Метод ввода параметров из потока.  

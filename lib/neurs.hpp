@@ -87,14 +87,23 @@ namespace NNSimulator {
             //! Перемещающий оператор присваивания.
             Neurs& operator=( const Neurs&& ) = delete;
 
+            //! Инициализация перед вызовом PerformStepTime().
+            virtual void performStepTimeInit() = 0;
+
             //! Вычисляет изменение состояния нейронов за промежуток времени \f$dt\f$.
             virtual void performStepTime( const T & dt ) = 0;
+
+            //!  Освобождение ресурсов после PerformStepTime().
+            virtual void performStepTimeFinalize() = 0;
 
             //! Устанавливает указатель на вектор со значениями синаптических токов.
             void setCurrents( const std::valarray<T> & I ) { I_ = &I; } // !!!!!
 
             //! Ссылка на массив потенциалов. 
             const std::valarray<T> & getPotentials() const noexcept { return V_; }
+
+            //! Ссылка на маску спайков. 
+            const std::valarray<bool> & getMasks() const noexcept { return mask_; }
 
             //! Перечисление с типами моделей нейронов.
             enum ChildId : size_t
@@ -123,12 +132,12 @@ namespace NNSimulator {
             //! Метод вывода параметров в поток. \details Порядок записи: - N_ - t_ - V_ - mask_ - VPeak_ - VReset_.
             virtual std::ostream& write( std::ostream& ostr ) const 
             {
-                ostr << N_ << '\t' << t_ << '\t';
-                for( const auto & e: V_ ) ostr << std::setw(5) << e << ' ' ;  
-                ostr << '\t';
-                for( const auto & e: mask_ ) ostr << std::setw(5) << e << ' ' ;  
-                ostr << '\t';
-                ostr << VPeak_ << ' ' << VReset_ << '\t';
+                ostr << N_ << ' ' << t_ << ' ';
+                for( const auto & e: V_ ) ostr << e << ' ' ;  
+                ostr << ' ';
+                for( const auto & e: mask_ ) ostr << e << ' ' ;  
+                ostr << ' ';
+                ostr << VPeak_ << ' ' << VReset_ << ' ';
                 return ostr;
             } 
 

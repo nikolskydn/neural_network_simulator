@@ -38,7 +38,7 @@ namespace NNSimulator {
             explicit NeursSpec() :  Neurs<T>()  {}
 
             //! Деструктор.
-            ~NeursSpec() = default;
+            virtual ~NeursSpec() = default;
 
             //! Копирующий конструктор.
             NeursSpec( const NeursSpec& ) = delete;
@@ -52,17 +52,28 @@ namespace NNSimulator {
             //! Перемещающий оператор присваивания.
             NeursSpec& operator=( const NeursSpec&& ) = delete;
 
+            //! Инициализация перед вызовами performStepTime().
+            virtual void performStepTimeInit() final
+            {
+                pImpl->performStepTimeSpecInit( V_.size() );
+            }
              
-            //! Вычисляет изменение состояния нейронов за промежуток времени dt.
+            //! Вычисляет изменение состояния нейронов за промежуток времени \f$ dt \f$.
             virtual void performStepTime(const T & dt) final
             {
                 pImpl->performStepTimeSpec( dt, I(), VPeak_, VReset_, paramSpec_, t_, V_, mask_ );
             }
 
+            //!  Освобождение ресурсов после PerformStepTime().
+            virtual void performStepTimeFinalize() final 
+            {
+                pImpl->performStepTimeSpecFinalize();
+            }
+
             //! Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const final
             {
-                return (Neurs<T>::write(ostr) << '\t' << paramSpec_);
+                return (Neurs<T>::write(ostr)  << paramSpec_ << ' ');
             }
 
             //! Метод ввода параметров из потока.  

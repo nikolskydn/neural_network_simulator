@@ -14,9 +14,8 @@ namespace NNSimulator {
                 std::valarray<bool> & mask
         )
         {
-            std::valarray<bool> maskInv = !mask;
-            std::valarray<T> ones(1,I.size());
-            V[maskInv] += (paramSpec*dt*ones)*I[maskInv];
+            maskInv = !mask;
+            V[maskInv] += (paramSpec*dt*ones)[maskInv]*I[maskInv];
             V[mask] = VReset;
             t += dt;
             mask = V>VPeak;

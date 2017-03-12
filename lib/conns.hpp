@@ -47,8 +47,14 @@ namespace NNSimulator {
             //! Указатель на массив потенциалов.
             const std::valarray<T> *V_ {nullptr};
 
+            //! Указатель на маску спайков.
+            const std::valarray<bool> *mask_ {nullptr};
+
             //! Разыменование указателя на массив потенциалов. 
             const std::valarray<T> & V() noexcept { return *V_; }
+
+            //! Разыменование указателя на маску спайков. 
+            const std::valarray<bool> & mask() noexcept { return *mask_; }
 
             //! Указатель на реализацию. 
             std::unique_ptr<ConnsImpl<T>> pImpl;
@@ -79,11 +85,20 @@ namespace NNSimulator {
             //! Перемещающий оператор присваивания.
             Conns& operator=( const Conns&& ) = delete;
 
-            //! Вычисляет изменение состояния нейронов за промежуток времени \f$dt\f$.
+            //! Инициализация перед вызовом PerformStepTime().
+            virtual void performStepTimeInit() = 0;
+
+            //! Вычисляет изменение состояния синапса за промежуток времени \f$dt\f$.
             virtual void performStepTime( const T & dt ) = 0;
+
+            //!  Освобождение ресурсов после PerformStepTime().
+            virtual void performStepTimeFinalize() = 0;
 
             //! Устанавливает указатель на вектор со значениями потенциалов.
             void setPotentials( const std::valarray<T> & V ) { V_ = &V; } 
+
+            //! Устанавливает указатель на вектор со значениями потенциалов.
+            void setMasks( const std::valarray<bool> & mask ) { mask_ = &mask; } 
 
             //! Ссылка на массив токов. 
             const std::valarray<T> & getCurrents() const noexcept { return I_; }
@@ -114,9 +129,9 @@ namespace NNSimulator {
             //! \~russian Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const 
             {
-                ostr << N_ << '\t' << t_ << '\t';
-                for( const auto & e: I_ ) ostr << std::setw(10) << e << ' ' ;
-                ostr << '\t';
+                ostr << N_ << ' ' << t_ << ' ';
+                for( const auto & e: I_ ) ostr << e << ' ' ;
+                ostr << ' ';
                 return ostr;
             } 
 

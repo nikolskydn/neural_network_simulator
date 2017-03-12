@@ -26,6 +26,7 @@ BOOST_AUTO_TEST_CASE (testSpecConns)
     ValueType paramSpec = 0.1;
     std::vector<ValueType> inI = { 1.,  2., 3. };
     std::valarray<ValueType> V = { 21., 1., 20.};
+    std::valarray<bool> mask = { 1, 0, 1};
 
     // out data
     std::vector<ValueType> resI = { 1.21,  1.,  3.2 };
@@ -41,8 +42,11 @@ BOOST_AUTO_TEST_CASE (testSpecConns)
     conns = conns->createItem( NNSimulator::Conns<ValueType>::ChildId::ConnsSpecId );     
 
     conns->setPotentials(V); 
+    conns->setMasks(mask); 
     inBuffer >> *conns;
+    conns->performStepTimeInit();
     conns->performStepTime(dt);
+    conns->performStepTimeFinalize();
 
     std::stringstream outBuffer;
     outBuffer << *conns;

@@ -58,7 +58,9 @@ BOOST_AUTO_TEST_CASE (testSpecNeurs)
     neurs = neurs->createItem( NNSimulator::Neurs<ValueType>::ChildId::NeursSpecId );     
     neurs->setCurrents(I);
     inBuffer >> *neurs;
+    neurs->performStepTimeInit();
     neurs->performStepTime(dt);
+    neurs->performStepTimeFinalize();
     std::stringstream outBuffer;
     outBuffer << *neurs;
     #if DEBUG

@@ -14,6 +14,9 @@ namespace NNSimulator {
     template<class T> class NeursImpl {
     public:
 
+        //! Инициализация перед performStepTime()
+        virtual void performStepTimeSpecInit( const size_t N ) = 0;
+
         //! Интерфейс метода для реализаций изменения состояния нейронов NeursSpec. \details Изменение потенциала \f$V\f$ за промежуток времени \f$dt\f$определяется следующим выражением \f$V=V+specParam\cdot I\cdot dt\f$, где \f$I\f$ --- ток, \f$specParam\f$ --- некоторый параметр.  
         virtual void performStepTimeSpec(
                 const T & dt, 
@@ -25,6 +28,9 @@ namespace NNSimulator {
                 std::valarray<T> & V, 
                 std::valarray<bool> & mask
         ) = 0;
+
+        //! Финализация после итераций performStepTimeSpec()
+        virtual void performStepTimeSpecFinalize() = 0;
     };
 }
 

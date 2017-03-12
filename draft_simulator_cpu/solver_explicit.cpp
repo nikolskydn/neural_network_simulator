@@ -10,11 +10,7 @@ class Solver
 {
     std::unique_ptr<NNSimulator::Neurs<float>> neurs;
     std::unique_ptr<NNSimulator::Conns<float>> conns;
-
-    std::valarray<float> I { 1. , 2., 3. };
-    std::valarray<float> V = { 4., 1., 3.};
-
-    float  dt {0.2};
+    float  dt {0.1};
     NNSimulator::Neurs<float>::ChildId neursId;
     NNSimulator::Conns<float>::ChildId connsId;
 
@@ -24,32 +20,41 @@ public:
     {
     }
 
-    void setData( std::stringstream & inBuffer )
+    virtual std::istream& read( std::istream& istr ) 
     {
+        istr >> dt;
         size_t tmpId;
-        inBuffer >> tmpId;
+        istr >> tmpId;
         neursId = static_cast<NNSimulator::Neurs<float>::ChildId>( tmpId );
         neurs = neurs->createItem( neursId ); 
-        inBuffer >> *neurs;
-        inBuffer >> tmpId;
+        istr >> *neurs;
+        istr >> tmpId;
         connsId = static_cast<NNSimulator::Conns<float>::ChildId>(tmpId);
         conns = conns->createItem( connsId );     
-        inBuffer >> *conns;
-
+        istr >> *conns;
         neurs->setCurrents( conns->getCurrents() );
         conns->setPotentials( neurs->getPotentials() ); 
+        conns->setMasks( neurs->getMasks() ); 
     }
 
-    void getData( std::stringstream & outBuffer )
-    {
-        outBuffer << neursId <<  ' ' << *neurs << '\t';
-        outBuffer << connsId << ' ' << *conns;
+    virtual std::ostream& write( std::ostream& ostr ) const 
+    { 
+        ostr << dt << ' ';
+        ostr << neursId <<  ' ' << *neurs << ' ';
+        ostr << connsId << ' ' << *conns << ' ';
     }
 
     void solve()
     {
-        neurs->performStepTime(dt);
-        conns->performStepTime(dt);
+        neurs->performStepTimeInit();
+        conns->performStepTimeInit();
+        for( int i=0; i<5; ++i )
+        {
+            neurs->performStepTime(dt);
+            conns->performStepTime(dt);
+        }
+        neurs->performStepTimeFinalize();
+        conns->performStepTimeFinalize();
     }
 };
 
@@ -70,26 +75,28 @@ int main( int argc, char* argv[] )
     float paramSpecConns = 0.1;
     std::vector<float> I = { 1.,  2., 3. };
 
+    float dt = 0.2;
+
     std::stringstream inBuff; 
-    
+    inBuff << dt << ' ';
     // neurs
     inBuff << neursType << ' ' << nNeurs << ' ' << t << ' ' 
-           << V[0] << ' ' << V[1] << ' ' << V[2] << ' ' 
-           << mask[0] << ' ' << mask[1] << ' ' << mask[2] << ' ' 
-           << VPeak << ' ' << VReset << ' ' << paramSpecNeurs << '\t';
+           << V[0] << ' ' << V[1] << ' ' << V[2] << ' '
+           << mask[0] << ' ' << mask[1] << ' ' << mask[2] << ' '
+           << VPeak << ' ' << VReset << ' ' << paramSpecNeurs << ' ';
 
     // conns
     inBuff << connsType << ' ' << nConns << ' ' << t << ' ' 
              << I[0] << ' ' << I[1] << ' ' << I[2] << ' '
-             << paramSpecConns << '\t';
+             << ' ' << paramSpecConns << ' ';
 
     std::cout << "\033[35m inBuffer " <<  inBuff.str() << "\033[0m" << std::endl;
 
     Solver s;
-    s.setData(inBuff);
+    s.read(inBuff);
     s.solve();
     std::stringstream outBuff;
-    s.getData( outBuff );
+    s.write( outBuff );
     std::cout << "\033[34m outBuffer " <<  outBuff.str() << "\033[0m" << std::endl;
 
     return 0;

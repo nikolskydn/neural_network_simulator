@@ -7,16 +7,14 @@ namespace NNSimulator {
                 const T & dt, 
                 const T & paramSpec,
                 const std::valarray<T> & V,
+                const std::valarray<bool> & mask,
                 T & t,
                 std::valarray<T> & I 
         )
         {
-            // bad solution
-            for(int i=0; i<V.size(); ++i )
-            {
-                if(V[i]>=10) I[i] += paramSpec*V[i]*dt;
-                else I[i] *= 0.5;
-            }
+            maskInv = !mask;
+            I[mask] += (paramSpec*dt*ones)[mask]*V[mask];
+            I[maskInv] *= (static_cast<T>(0.5)*ones)[maskInv];
             t += dt;
         }
 
