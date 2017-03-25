@@ -12,10 +12,11 @@
 #include <memory>
 
 #include "connsspec.hpp"
+#include "formatstream.hpp"
 
 #include "setting.h"
 
-#ifdef NN_CUDA_IMPL 
+#ifdef NnNeurs_CUDA_IMPL 
     #include "./impl/cuda/connscuda.hpp"
 #else 
     #include "./impl/cpu/connscpu.hpp"
@@ -35,11 +36,17 @@ namespace NNSimulator {
  
         protected:
 
-            //! Число синапсов в моделируемой сети.
-            size_t N_ {0};
+            //! Число нейронов в моделируемой сети.
+            size_t nNeurs_ {0};
+
+            //! Число синаптических связей nNeurs = nConns x nConns
+            //size_t nConns_ {0};
 
             //! Вектор токов.
             std::valarray<T> I_;
+
+            //! Матрица весов \details С-like style.
+            std::valarray<T> weights_;
 
             //! Модельное время 
             T t_ ;
@@ -63,7 +70,7 @@ namespace NNSimulator {
 
             //! Конструктор.
             explicit Conns() :  pImpl( 
-                #ifdef NN_CUDA_IMPL
+                #ifdef NnNeurs_CUDA_IMPL
                     std::make_unique<ConnsImplCuda<T>>() 
                 #else 
                     std::make_unique<ConnsImplCPU<T>>() 
@@ -111,7 +118,7 @@ namespace NNSimulator {
             };
 
             //! Фабричный метод создания новых объектов. \details 
-            std::unique_ptr<Conns<T>> createItem( ChildId id )
+            static std::unique_ptr<Conns<T>> createItem( ChildId id )
             {
                 std::unique_ptr<Conns<T>> ptr;
                 switch( id )
@@ -129,18 +136,25 @@ namespace NNSimulator {
             //! \~russian Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const 
             {
-                ostr << N_ << ' ' << t_ << ' ';
-                for( const auto & e: I_ ) ostr << e << ' ' ;
-                ostr << ' ';
-                return ostr;
+                FormatStream oFStr( ostr );
+                oFStr << nNeurs_  << t_ ;
+                for( const auto & e: I_ ) 
+                    oFStr << e ;
+                for( const auto & e: weights_ ) 
+                    oFStr << e  ;
+                return oFStr;
             } 
 
             //! \~russian Метод ввода параметров из потока.  
             virtual std::istream& read( std::istream& istr ) 
             {
-                istr >> N_  >> t_;
-                I_.resize(N_);
-                for( auto & e: I_ ) istr >> e;
+                istr >> nNeurs_  >> t_;
+                I_.resize(nNeurs_);
+                for( auto & e: I_ ) 
+                    istr >> e;
+                weights_.resize(nNeurs_*nNeurs_);
+                for( auto & e: weights_ ) 
+                    istr >> e;
                 return istr;
             }
 

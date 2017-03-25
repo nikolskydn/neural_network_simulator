@@ -1,5 +1,7 @@
 #include "connscpu.hpp"
 
+#include <valarray>
+
 namespace NNSimulator {
 
         //! Реализация изменения состояния синапса на универсальном процессоре.
@@ -9,7 +11,8 @@ namespace NNSimulator {
                 const std::valarray<T> & V,
                 const std::valarray<bool> & mask,
                 T & t,
-                std::valarray<T> & I 
+                std::valarray<T> & I,
+                std::valarray<T> & weights
         )
         {
             maskInv = !mask;

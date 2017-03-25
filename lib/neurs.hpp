@@ -12,8 +12,8 @@
 #include <memory>
 
 #include "neursspec.hpp"
-
 #include "setting.h"
+#include "formatstream.hpp"
 
 #ifdef NN_CUDA_IMPL 
     #include "./impl/cuda/neurscuda.hpp"
@@ -105,6 +105,9 @@ namespace NNSimulator {
             //! Ссылка на маску спайков. 
             const std::valarray<bool> & getMasks() const noexcept { return mask_; }
 
+            //! Время текущего состояния системы.
+            T getTime() const { return t_ ; }
+
             //! Перечисление с типами моделей нейронов.
             enum ChildId : size_t
             {  
@@ -114,7 +117,7 @@ namespace NNSimulator {
             };
 
             //! Фабричный метод создания новых объектов. \details 
-            std::unique_ptr<Neurs<T>> createItem( ChildId id )
+            static std::unique_ptr<Neurs<T>> createItem( ChildId id )
             {
                 std::unique_ptr<Neurs<T>> ptr;
                 switch( id )
@@ -132,13 +135,12 @@ namespace NNSimulator {
             //! Метод вывода параметров в поток. \details Порядок записи: - N_ - t_ - V_ - mask_ - VPeak_ - VReset_.
             virtual std::ostream& write( std::ostream& ostr ) const 
             {
-                ostr << N_ << ' ' << t_ << ' ';
-                for( const auto & e: V_ ) ostr << e << ' ' ;  
-                ostr << ' ';
-                for( const auto & e: mask_ ) ostr << e << ' ' ;  
-                ostr << ' ';
-                ostr << VPeak_ << ' ' << VReset_ << ' ';
-                return ostr;
+                FormatStream oFStr( ostr );
+                oFStr << N_ << t_ ;
+                for( const auto & e: V_ ) oFStr << e ;  
+                for( const auto & e: mask_ ) oFStr << e ;  
+                oFStr << VPeak_ <<  VReset_ ;
+                return oFStr;
             } 
 
             //! Метод ввода параметров из потока. \details Порядок чтения: - N_ - t_ - V_ - mask_ - VPeak_ - VReset_. 

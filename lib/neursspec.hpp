@@ -7,6 +7,7 @@
 #define _NNetworkSimulatorNeursSpecNDN2017_
 
 #include "neurs.hpp"
+#include "formatstream.hpp"
 
 #include <iostream>
 
@@ -73,7 +74,9 @@ namespace NNSimulator {
             //! Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const final
             {
-                return (Neurs<T>::write(ostr)  << paramSpec_ << ' ');
+                FormatStream oFStr( Neurs<T>::write( ostr ) );
+                oFStr << paramSpec_ ;
+                return oFStr;
             }
 
             //! Метод ввода параметров из потока.  
@@ -81,7 +84,7 @@ namespace NNSimulator {
             {
                 return (Neurs<T>::read(istr) >> paramSpec_);
             }
-
+           
     };
 }
 

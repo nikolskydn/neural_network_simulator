@@ -6,7 +6,7 @@ TRGS=$(SRCS:%.cpp=%_cpu)
 all: $(TRGS)
 
 $(TRGS): %_cpu: %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cpu -lneurscpu -lconnscpu
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cpu -lneurscpu -lconnscpu -lsolvercpu
 
 clean:
 	rm -f $(TRGS)

@@ -27,7 +27,8 @@ namespace NNSimulator {
         const float & paramSpec,
         const std::valarray<float> & V,
         float & t,
-        std::valarray<float> & I
+        std::valarray<float> & I,
+        std::valarray<float> & weights
     ) 
     {
         size_t n = I.size();

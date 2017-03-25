@@ -7,6 +7,7 @@
 #define _NeuroglialNetworkSimulatorConnsSpecNDN2017_
 
 #include "conns.hpp"
+#include "formatstream.hpp"
 
 namespace NNSimulator {
 
@@ -16,16 +17,15 @@ namespace NNSimulator {
     template<class T> class ConnsSpec : public Conns<T> {
 
         using Conns<T>::t_;
-        using Conns<T>::N_;
+        using Conns<T>::nNeurs_;
         using Conns<T>::I_;
+        using Conns<T>::weights_ ;
         using Conns<T>::V;
         using Conns<T>::mask;
-        //using Conns<T>::V_;
-        //using Conns<T>::mask_;
         using Conns<T>::pImpl;
 
         //! Некоторый специальный параметр.
-        T paramSpec {0.1};
+        T paramSpec_ {0.1};
 
         public:
 
@@ -56,7 +56,7 @@ namespace NNSimulator {
             //! Вычисляет изменение состояния нейронов за промежуток времени dt.
             virtual void performStepTime(const T & dt) final
             {
-                pImpl->performStepTimeSpec( dt, paramSpec, V(), mask(), t_, I_ );
+                pImpl->performStepTimeSpec( dt, paramSpec_, V(), mask(), t_, I_, weights_ );
             }
 
             //!  Освобождение ресурсов после PerformStepTime().
@@ -68,13 +68,15 @@ namespace NNSimulator {
             //! \~russian Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const final
             {
-                return (Conns<T>::write(ostr)  << paramSpec << ' ');
+                FormatStream oFStr( Conns<T>::write( ostr ) );
+                oFStr << paramSpec_;
+                return oFStr;
             }
 
             //! \~russian Метод ввода параметров из потока.  
             virtual std::istream& read( std::istream& istr ) final
             {
-                return (Conns<T>::read(istr) >> paramSpec);
+                return (Conns<T>::read(istr) >> paramSpec_);
             }
 
     };

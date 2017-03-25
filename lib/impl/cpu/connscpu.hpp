@@ -35,7 +35,8 @@ namespace NNSimulator {
                 const std::valarray<T> & V,
                 const std::valarray<bool> & mask,
                 T & t,
-                std::valarray<T> & I 
+                std::valarray<T> & I,
+                std::valarray<T> & weights
         ) final;
 
         //! Финализация после итераций performStepTimeSpec()
