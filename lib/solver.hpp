@@ -6,18 +6,14 @@
 #ifndef _NeuroglialNetworkSimulatorSolverNDN2017_
 #define _NeuroglialNetworkSimulatorSolverNDN2017_
 
-
 #include <iostream>
 #include <sstream>
 #include <vector>
 #include <iomanip>
 #include <type_traits>
-#include "neursspec.hpp"
-#include "connsspec.hpp"
 #include "formatstream.hpp"
 
-// children:
-#include "../lib/solverexpliciteuler.hpp"
+#include "solverexpliciteulerspec.hpp"
 
 #include "setting.h"
 #ifdef NN_CUDA_IMPL 
@@ -29,41 +25,49 @@
 
 namespace NNSimulator {
 
-    template<class T> class SolverExplicitEuler;
+    template<class T> class SolverExplicitEulerSpec;
 
     template<class T> class SolverImpl;
     template<class T> class SolverImplCPU;
     template<class T> class SolverImplCuda;
 
-    template<class T> class Conns;
-    template<class T> class Neurs;
-
-    //! Базовый класс для численных решателей. \details Хранит основные данные, необходимые для решателей: объекты типа Neurs (нейроны), Conns (синапсы), шаг дискретизации. Определяет интерфейс метода, выполняющего расчеты (solve()).
+    //! Базовый класс для численных решателей.
     template<class T> class Solver
     {
-    protected:
+        protected:
 
-        //! Группа нейронов.
-        std::unique_ptr<typename NNSimulator::Neurs<T>> neurs_;
+            //! Число нейронов в моделируемой сети.
+            size_t N_ {0};
 
-        //! Группа синапсов.
-        std::unique_ptr<typename NNSimulator::Conns<T>> conns_;
+            //! Вектор мембранных потенциалов.
+            std::valarray<T> V_;
 
-        //! Шаг по времени.
-        T  dt_ ;
+            //! Предельное значение потенциала.
+            T VPeak_;
 
-        //! Время симуляции
-        T simulationTime_;
+            //! Значение потенциала после спайка.
+            T VReset_;
 
-        //! Идентификатор нейрона.
-        typename NNSimulator::Neurs<T>::ChildId neursId_;
+            //! Маска, хранящая спайки.
+            std::valarray<bool> mask_;
 
-        //! Идентификатор синапса.
-        typename NNSimulator::Conns<T>::ChildId connsId_;
+            //! Вектор токов.
+            std::valarray<T> I_;
 
-        //! Указатель на реализацию. 
-        std::unique_ptr<SolverImpl<T>> pImpl_;
+            //! Матрица весов \details С-like style.
+            std::valarray<T> weights_;
 
+            //! Модельное время 
+            T t_ ;
+
+            //! Шаг по времени.
+            T  dt_ ;
+
+            //! Время симуляции
+            T simulationTime_;
+
+            //! Указатель на реализацию. 
+            std::unique_ptr<SolverImpl<T>> pImpl_;
 
     public:
 
@@ -94,7 +98,7 @@ namespace NNSimulator {
             //! Перечисление с типами решателей.
             enum ChildId : size_t
             {  
-                SolverExplicitEulerId = 0, //!< явный метод Эйлера
+                SolverExplicitEulerSpecId = 0, //!< явный метод Эйлера для модели некоторой тестовой модели Spec
                 SolverExplicitRungeKutta45 = 1,
             };
 
@@ -104,8 +108,8 @@ namespace NNSimulator {
                 std::unique_ptr<Solver<T>> ptr;
                 switch( id )
                 {
-                    case SolverExplicitEulerId:
-                        ptr = std::unique_ptr<Solver<T>>( std::make_unique<SolverExplicitEuler<T>>() );
+                    case SolverExplicitEulerSpecId:
+                        ptr = std::unique_ptr<Solver<T>>( std::make_unique<SolverExplicitEulerSpec<T>>() );
                     break;
                 }
                 return ptr;
@@ -114,20 +118,22 @@ namespace NNSimulator {
             //! Потоковое чтение данных.
             virtual std::istream& read( std::istream& istr ) 
             {
+                // solver
+                istr >> t_;
                 istr >> simulationTime_;
                 istr >> dt_;
-                size_t tmpId;
-                istr >> tmpId;
-                neursId_ = static_cast<typename NNSimulator::Neurs<T>::ChildId>( tmpId );
-                neurs_ = NNSimulator::Neurs<T>::createItem( neursId_ ); 
-                istr >> *neurs_;
-                istr >> tmpId;
-                connsId_ = static_cast<typename NNSimulator::Conns<T>::ChildId>(tmpId);
-                conns_ = conns_->createItem( connsId_ );     
-                istr >> *conns_;
-                neurs_->setCurrents( conns_->getCurrents() );
-                conns_->setPotentials( neurs_->getPotentials() ); 
-                conns_->setMasks( neurs_->getMasks() ); 
+                // neurs
+                istr >> N_ ;
+                V_.resize(N_);
+                mask_.resize(N_);
+                for( auto & e: V_ ) istr >> e;
+                for( auto & e: mask_ ) istr >> e;
+                istr >> VPeak_ >> VReset_;
+                // conns
+                I_.resize(N_);
+                for( auto & e: I_ ) istr >> e;
+                weights_.resize(N_*N_);
+                for( auto & e: weights_ ) istr >> e;
                 return istr;
             }
 
@@ -135,10 +141,20 @@ namespace NNSimulator {
             virtual std::ostream& write( std::ostream& ostr ) const 
             { 
                 FormatStream oFStr( ostr );
+                // solver
+                oFStr << t_;
                 oFStr << simulationTime_ ;
                 oFStr << dt_ ;
-                oFStr << neursId_  << *neurs_ ;
-                oFStr << connsId_  << *conns_ ;
+                // neurs
+                oFStr << N_;
+                for( const auto & e: V_ ) oFStr << e ;  
+                for( const auto & e: mask_ ) oFStr << e ;  
+                oFStr << VPeak_ <<  VReset_ ;
+                // conns
+                for( const auto & e: I_ ) 
+                    oFStr << e ;
+                for( const auto & e: weights_ ) 
+                    oFStr << e  ;
                 return oFStr;
             }
     
