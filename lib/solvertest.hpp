@@ -1,10 +1,10 @@
-/** @addtogroup Solvers
+/** @addtogroup TestSolvers
  * @{*/
 
 /** @file */
 
-#ifndef _NeuroglialNetworkSimulatorSolverExplicitEulerSpecNDN2017_
-#define _NeuroglialNetworkSimulatorSolverExplicitEulerSpecNDN2017_
+#ifndef _NeuroglialNetworkSimulatorSolverForTestNDN2017_
+#define _NeuroglialNetworkSimulatorSolverForTestNDN2017_
 
 #include <iostream>
 #include <sstream>
@@ -17,18 +17,19 @@ namespace NNSimulator {
 
     template<class T> class Solver;
 
-    template<class T> class SolverExplicitEulerSpec: public Solver<T>
+    //! Класc для тестирования работоспособности проекта.
+    template<class T> class SolverForTest: public Solver<T>
     {
 
-            using Solver<T>::N_;
-            using Solver<T>::V_;
-            using Solver<T>::VPeak_;
-            using Solver<T>::VReset_;
-            using Solver<T>::mask_;
-            using Solver<T>::I_;
-            using Solver<T>::weights_;
+            using Solver<T>::nNeurs_;
+            using Solver<T>::VNeurs_;
+            using Solver<T>::VNeursPeak_;
+            using Solver<T>::VNeursReset_;
+            using Solver<T>::mNeurs_;
+            using Solver<T>::INeurs_;
+            using Solver<T>::wConns_;
             using Solver<T>::t_;
-            using Solver<T>::simulationTime_;
+            using Solver<T>::st_;
             using Solver<T>::dt_;
             using Solver<T>::pImpl_;
 
@@ -43,39 +44,39 @@ namespace NNSimulator {
         public:
 
             //! Конструктор.
-            explicit SolverExplicitEulerSpec() :  Solver<T>()  {}
+            explicit SolverForTest() :  Solver<T>()  {}
 
             //! Деструктор.
-            virtual ~SolverExplicitEulerSpec() = default;
+            virtual ~SolverForTest() = default;
 
             //! Копирующий конструктор.
-            SolverExplicitEulerSpec( const SolverExplicitEulerSpec& ) = delete;
+            SolverForTest( const SolverForTest& ) = delete;
 
             //! Оператор присваивания.
-            SolverExplicitEulerSpec& operator=( const SolverExplicitEulerSpec& ) = delete;
+            SolverForTest& operator=( const SolverForTest& ) = delete;
 
             //! Перемещающий конструктор.
-            SolverExplicitEulerSpec( const SolverExplicitEulerSpec&& ) = delete;
+            SolverForTest( const SolverForTest&& ) = delete;
 
             //! Перемещающий оператор присваивания.
-            SolverExplicitEulerSpec& operator=( const SolverExplicitEulerSpec&& ) = delete;
+            SolverForTest& operator=( const SolverForTest&& ) = delete;
 
-            //! Выполнить решение.
+            //! Выполнить решение \details Выполняется вызов установленной реализации.
             virtual void solve() final
             {
-                pImpl_->solveExplicitEulerSpec
+                pImpl_->solveTest
                 ( 
-                    N_,
-                    VPeak_,
-                    VReset_,
+                    nNeurs_,
+                    VNeursPeak_,
+                    VNeursReset_,
                     dt_,
-                    simulationTime_,
+                    st_,
                     neursParamSpec_,
                     connsParamSpec_,
-                    V_,
-                    mask_,
-                    I_,
-                    weights_,
+                    VNeurs_,
+                    mNeurs_,
+                    INeurs_,
+                    wConns_,
                     t_
                 );
             }

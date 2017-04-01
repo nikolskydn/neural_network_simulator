@@ -8,12 +8,13 @@
 
 #include <iostream>
 #include <sstream>
-#include <vector>
+#include <valarray>
 #include <iomanip>
 #include <type_traits>
 #include "formatstream.hpp"
 
-#include "solverexpliciteulerspec.hpp"
+#include "solvertest.hpp"
+#include "solverpcnn.hpp"
 
 #include "setting.h"
 #ifdef NN_CUDA_IMPL 
@@ -25,7 +26,8 @@
 
 namespace NNSimulator {
 
-    template<class T> class SolverExplicitEulerSpec;
+    template<class T> class SolverForTest;
+    template<class T> class SolverPCNN;
 
     template<class T> class SolverImpl;
     template<class T> class SolverImplCPU;
@@ -36,35 +38,35 @@ namespace NNSimulator {
     {
         protected:
 
-            //! Число нейронов в моделируемой сети.
-            size_t N_ {0};
+            //! Число нейронов. 
+            size_t nNeurs_ {0};
 
             //! Вектор мембранных потенциалов.
-            std::valarray<T> V_;
+            std::valarray<T> VNeurs_;
 
             //! Предельное значение потенциала.
-            T VPeak_;
+            T VNeursPeak_;
 
             //! Значение потенциала после спайка.
-            T VReset_;
+            T VNeursReset_;
 
             //! Маска, хранящая спайки.
-            std::valarray<bool> mask_;
+            std::valarray<bool> mNeurs_;
 
-            //! Вектор токов.
-            std::valarray<T> I_;
+            //! Вектор токов для нейров. 
+            std::valarray<T> INeurs_;
 
-            //! Матрица весов \details С-like style.
-            std::valarray<T> weights_;
+            //! Матрица весов nNeurs_ x nNeurs_.
+            std::valarray<T> wConns_;
 
-            //! Модельное время 
+            //! Модельное время. 
             T t_ ;
 
             //! Шаг по времени.
-            T  dt_ ;
+            T  dt_ ; 
 
-            //! Время симуляции
-            T simulationTime_;
+            //! Время симуляции.
+            T st_; 
 
             //! Указатель на реализацию. 
             std::unique_ptr<SolverImpl<T>> pImpl_;
@@ -98,8 +100,8 @@ namespace NNSimulator {
             //! Перечисление с типами решателей.
             enum ChildId : size_t
             {  
-                SolverExplicitEulerSpecId = 0, //!< явный метод Эйлера для модели некоторой тестовой модели Spec
-                SolverExplicitRungeKutta45 = 1,
+                SolverForTestId = 0, //!< явный метод Эйлера для модели некоторой тестовой модели Spec
+                SolverPCNNId = 1, //!< модель Е.М. Ижикевича 2003
             };
 
             //! Фабричный метод создания конкретного решателя. 
@@ -108,8 +110,11 @@ namespace NNSimulator {
                 std::unique_ptr<Solver<T>> ptr;
                 switch( id )
                 {
-                    case SolverExplicitEulerSpecId:
-                        ptr = std::unique_ptr<Solver<T>>( std::make_unique<SolverExplicitEulerSpec<T>>() );
+                    case SolverForTestId:
+                        ptr = std::unique_ptr<Solver<T>>( std::make_unique<SolverForTest<T>>() );
+                    break;
+                    case SolverPCNNId:
+                        ptr = std::unique_ptr<Solver<T>>( std::make_unique<SolverPCNN<T>>() );
                     break;
                 }
                 return ptr;
@@ -120,20 +125,21 @@ namespace NNSimulator {
             {
                 // solver
                 istr >> t_;
-                istr >> simulationTime_;
+                istr >> st_;
                 istr >> dt_;
                 // neurs
-                istr >> N_ ;
-                V_.resize(N_);
-                mask_.resize(N_);
-                for( auto & e: V_ ) istr >> e;
-                for( auto & e: mask_ ) istr >> e;
-                istr >> VPeak_ >> VReset_;
+                istr >> nNeurs_ ;
+                VNeurs_.resize(nNeurs_);
+                mNeurs_.resize(nNeurs_);
+                for( auto & e: VNeurs_ ) istr >> e;
+                for( auto & e: mNeurs_ ) istr >> e;
+                istr >> VNeursPeak_ >> VNeursReset_;
                 // conns
-                I_.resize(N_);
-                for( auto & e: I_ ) istr >> e;
-                weights_.resize(N_*N_);
-                for( auto & e: weights_ ) istr >> e;
+                INeurs_.resize(nNeurs_);
+                for( auto & e: INeurs_ ) istr >> e;
+                size_t nConns = nNeurs_ * nNeurs_;
+                wConns_.resize(nConns);
+                for( auto & e: wConns_ ) istr >> e;
                 return istr;
             }
 
@@ -143,21 +149,19 @@ namespace NNSimulator {
                 FormatStream oFStr( ostr );
                 // solver
                 oFStr << t_;
-                oFStr << simulationTime_ ;
+                oFStr << st_ ;
                 oFStr << dt_ ;
                 // neurs
-                oFStr << N_;
-                for( const auto & e: V_ ) oFStr << e ;  
-                for( const auto & e: mask_ ) oFStr << e ;  
-                oFStr << VPeak_ <<  VReset_ ;
+                oFStr << nNeurs_;
+                for( const auto & e: VNeurs_ ) oFStr << e ;  
+                for( const auto & e: mNeurs_ ) oFStr << e ;  
+                oFStr << VNeursPeak_ <<  VNeursReset_ ;
                 // conns
-                for( const auto & e: I_ ) 
-                    oFStr << e ;
-                for( const auto & e: weights_ ) 
-                    oFStr << e  ;
+                for( const auto & e: INeurs_ ) oFStr << e ;
+                for( const auto & e: wConns_ ) oFStr << e  ;
                 return oFStr;
             }
-    
+
             //! Выполнить решение.
             virtual void solve() = 0; 
     };

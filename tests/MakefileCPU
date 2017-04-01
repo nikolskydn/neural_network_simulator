@@ -3,9 +3,11 @@ CXXFLAGS=-std=c++14
 SRCS=$(wildcard *.cpp)
 TRGS=$(SRCS:%.cpp=%_cpu)
 
+DPNDS=$(wildcard ../lib/solver*.hpp)
+
 all: $(TRGS)
 
-$(TRGS): %_cpu: %.cpp
+$(TRGS): %_cpu: %.cpp $(DPNDS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cpu -lsolvercpu
 
 clean:

@@ -4,7 +4,7 @@ SRCS=$(wildcard *.cpp)
 TRGS=$(SRCS:%.cpp=%_cuda)
 
 $(TRGS): %_cuda: %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ -L../impl/cuda -lneurscuda -L/usr/local/cuda/lib64 -lcudart
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cuda -lsolvercuda -L/usr/local/cuda/lib64 -lcudart
 
 clean:
 	rm -f $(TRGS)

@@ -3,7 +3,6 @@
 
 /** @file */
 
-
 #include <valarray>
 #include "solvercuda.hpp"
 
@@ -11,108 +10,105 @@
 
 namespace NNSimulator {
 
-    __device__ void solveExplicitEulerKernelD(  
-        const float *dt, 
-        const float *I, 
-        const float *VPeak, 
-        const float *VReset, 
-        const float *paramSpec, 
-        float *t, 
+    __global__ void solveTestKernelG(  
+        const float *VP,
+        const float *VR,
+        const float *dt,
+        const float *st,
+        const float *np,
+        const float *cp,
         float *V,
-        bool *mask 
+        bool *m,
+        float *I,
+        float *w,
+        float *t
     ) 
     {
         int i = threadIdx.x + blockIdx.x * blockDim.x;
-        if( mask[i] )
-        {
-            V[i] = *VReset;
-        } else {
-            V[i] += (*paramSpec)*I[i]*(*dt);
-        }
+        if( m[i] ) V[i] = *VR;
+        else V[i] += (*np)*I[i]*(*dt);
+        m[i] = V[i] > *VP;
+        if(V[i]>(*VP)) I[i] += (*cp)*V[i]*(*dt);
+        else I[i] *= 0.5;
         *t += *dt;
-        mask[i] = V[i] > *VPeak;
-    }
 
-    __global__ void solveExplicitEulerKernelG( 
-        const float *dt, 
-        const float *I, 
-        const float *VPeak, 
-        const float *VReset, 
-        const float *paramSpec, 
-        float *t, 
-        float *V,
-        bool *mask 
-    ) 
-    {
-        solveExplicitEulerKernelD( dt, I, VPeak, VReset, paramSpec, t, V, mask );
     }
 
     //! Полная специализация метода solveExplicitEuler для float.
     template<> 
-    void SolverImplCuda<float>::solveExplicitEuler(
-        std::unique_ptr<NNSimulator::Neurs<float>> & neurs,
-        std::unique_ptr<NNSimulator::Conns<float>> & conns,
-        const float & dt,
-        const float & simulationTime 
+    void SolverImplCuda<float>::solveTest(
+        const size_t & nN, // nNeurs
+        const float & VP, // VPeak
+        const float & VR, // VReset
+        const float &  dt,
+        const float & st, // simulationTime
+        const float & np, // neuronsParamSpec
+        const float & cp, // connectsParamSpec
+        std::valarray<float> & V,
+        std::valarray<bool> & m, // mask
+        std::valarray<float> & I,
+        std::valarray<float> & w, // weight
+        float & t
     ) 
     {
-        // tmp
-
-        float t = 0;
-        float VPeak = 1;
-        float VReset = 1;
-        float paramSpec = 1;
-        std::valarray<float> V = {1,0,1};
-        std::valarray<float> I = {1,0,1};
-        std::valarray<bool> mask = {1,0,1};
-        // end tmp
-
-        size_t n = I.size();
-        size_t nSize = n*sizeof(float);
-        size_t bSize = n*sizeof(bool);
+        size_t nSize = nN*sizeof(float);
+        size_t bSize = nN*sizeof(bool);
         size_t size = sizeof(float);
 
-        float *dtDev;
-        float *tDev;
-        float *paramSpecDev;
-        float *VPeakDev;
-        float *VResetDev;
-        float *IDev;
-        float *VDev;
-        bool *maskDev;
+        float *VPD;
+        float *VRD;
+        float *dtD;
+        float *stD;
+        float *npD;
+        float *cpD;
+        float *VD;  
+        bool *mD;  
+        float *ID;  
+        float *wD; 
+        float *tD;
 
-        cudaMalloc( (void**)&dtDev, size);
-        cudaMalloc( (void**)&tDev, size);
-        cudaMalloc( (void**)&paramSpecDev, size);
-        cudaMalloc( (void**)&VPeakDev, size);
-        cudaMalloc( (void**)&VResetDev, size);
-        cudaMalloc( (void**)&IDev, nSize);
-        cudaMalloc( (void**)&VDev, nSize);
-        cudaMalloc( (void**)&maskDev, bSize);
+        cudaMalloc( (void**)&VPD, size);
+        cudaMalloc( (void**)&VRD, size);
+        cudaMalloc( (void**)&dtD, size);
+        cudaMalloc( (void**)&stD, size);
+        cudaMalloc( (void**)&npD, size);
+        cudaMalloc( (void**)&cpD, size);
+        cudaMalloc( (void**)&VD, nSize);
+        cudaMalloc( (void**)&mD, bSize);
+        cudaMalloc( (void**)&ID, nSize);
+        cudaMalloc( (void**)&wD, nSize*nSize);
+        cudaMalloc( (void**)&tD, size);
 
-        cudaMemcpy( dtDev, &dt, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( tDev, &t, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( paramSpecDev, &paramSpec, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( VPeakDev, &VPeak, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( VResetDev, &VReset, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( IDev, &I[0], nSize, cudaMemcpyHostToDevice );
-        cudaMemcpy( VDev, &V[0], nSize, cudaMemcpyHostToDevice );
-        cudaMemcpy( maskDev, &mask[0], bSize, cudaMemcpyHostToDevice );
+        cudaMemcpy( VPD, &VP, size, cudaMemcpyHostToDevice );
+        cudaMemcpy( VRD, &VR, size, cudaMemcpyHostToDevice );
+        cudaMemcpy( dtD, &dt, size, cudaMemcpyHostToDevice );
+        cudaMemcpy( stD, &st, size, cudaMemcpyHostToDevice );
+        cudaMemcpy( npD, &np, size, cudaMemcpyHostToDevice );
+        cudaMemcpy( cpD, &cp, size, cudaMemcpyHostToDevice );
+        cudaMemcpy( VD, &V[0], nSize, cudaMemcpyHostToDevice );
+        cudaMemcpy( mD, &m[0], bSize, cudaMemcpyHostToDevice );
+        cudaMemcpy( ID, &I[0], nSize, cudaMemcpyHostToDevice );
+        cudaMemcpy( wD, &w[0], nSize*nSize, cudaMemcpyHostToDevice );
+        cudaMemcpy( tD, &t, size, cudaMemcpyHostToDevice );
 
-        solveExplicitEulerKernelG<<< 1, n >>>( dtDev, IDev, VPeakDev, VResetDev, paramSpecDev, tDev, VDev, maskDev );
+        solveTestKernelG<<< 1, nN >>>( VPD, VRD, dtD, stD, npD, cpD, VD, mD,  ID,  wD, tD);
 
-        cudaMemcpy( &t, tDev, size, cudaMemcpyDeviceToHost );
-        cudaMemcpy( &V[0], VDev, nSize, cudaMemcpyDeviceToHost );
-        cudaMemcpy( &mask[0], maskDev, bSize, cudaMemcpyDeviceToHost );
+        cudaMemcpy( &t, tD, size, cudaMemcpyDeviceToHost );
+        cudaMemcpy( &V[0], VD, nSize, cudaMemcpyDeviceToHost );
+        cudaMemcpy( &m[0], mD, bSize, cudaMemcpyDeviceToHost );
+        cudaMemcpy( &I[0], ID, nSize, cudaMemcpyDeviceToHost );
 
-        cudaFree( dtDev );
-        cudaFree( IDev );
-        cudaFree( VPeakDev );
-        cudaFree( VResetDev );
-        cudaFree( paramSpecDev );
-        cudaFree( tDev );
-        cudaFree( VDev );
-        cudaFree( maskDev );
+        cudaFree( VPD );
+        cudaFree( VRD );
+        cudaFree( dtD );
+        cudaFree( stD );
+        cudaFree( npD );
+        cudaFree( cpD );
+        cudaFree( VD );
+        cudaFree( mD );
+        cudaFree( ID );
+        cudaFree( wD );
+        cudaFree( tD );
 
     }
 

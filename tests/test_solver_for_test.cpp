@@ -6,14 +6,14 @@
 #include <sstream>
 #include <vector>
 #include <type_traits>
-#include "../lib/solverexpliciteulerspec.hpp"
+#include "../lib/solver.hpp"
 #include "../lib/formatstream.hpp"
 
 #define DEBUG 1
 
 BOOST_AUTO_TEST_SUITE (SolverTest) 
 
-BOOST_AUTO_TEST_CASE (testForExplicitSolverWithSpecElems)
+BOOST_AUTO_TEST_CASE (testSorverForTest)
 {
     size_t neursType = 0;
     size_t nNeurs = 3;
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE (testForExplicitSolverWithSpecElems)
     inFBuff << paramSpecNeurs << paramSpecConns;
 
     #if DEBUG 
-        std::cout << "\033[31;1m";
+        std::cout << "SolverForTest\033[31;1m";
         FormatStream f(std::cout, 5);
         // solver:
         f << "nS" << "t" << "sT" << "dt" ;
@@ -150,8 +150,10 @@ BOOST_AUTO_TEST_CASE (testForExplicitSolverWithSpecElems)
     std::vector<float> outI(nNeurs);
     for(size_t i=0; i<nNeurs; ++i ){
         outBuff >> outI[i];
-        if(mask[i]) I[i] += dt*paramSpecConns*V[i]; 
-        else I[i] *= .5f;
+        if( i < nNeurs ){
+            if(mask[i]) I[i] += dt*paramSpecConns*V[i]; 
+            else I[i] *= .5f;
+        }
         BOOST_CHECK_CLOSE_FRACTION( outI[i], I[i], std::numeric_limits<float>::epsilon() );
     }
 
@@ -173,3 +175,49 @@ BOOST_AUTO_TEST_CASE (testForExplicitSolverWithSpecElems)
     BOOST_AUTO_TEST_SUITE_END();
 }
 
+
+//  *************   SolverPCNN
+
+BOOST_AUTO_TEST_CASE (TestSolverPCNN)
+{
+    size_t nNeurs = 3;
+    std::stringstream inBuff;
+    inBuff << "       1   0.0000   3.0000   1.0000        10 -50.0000 -65.0000 -50.0000 -65.0000 -65.0000 -65.0000 -65.0000 -65.0000 -65.0000 -65.0000        0        0        0        0        0        0        0        0        0        0   30.0000 -65.0000   5.0000   5.0000   5.0000   5.0000   5.0000   5.0000   5.0000   5.0000   2.0000   2.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000 -10.0000 -13.0000 -10.0000 -13.0000 -13.0000 -13.0000 -13.0000 -13.0000 -13.0000 -13.0000   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.1000   0.1000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -65.0000 -65.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   ";
+
+    #if DEBUG 
+        std::cout << "\nSolverPCNN\n\033[31;1m";
+        FormatStream f(std::cout, 8);
+        std::cout << "\033[0m" << std::endl;
+        std::cout << "\033[31m" <<  inBuff.str() << "\033[0m" << std::endl;
+    #endif
+
+    size_t outNumberSolver;
+    inBuff >> outNumberSolver;
+
+    auto s = NNSimulator::Solver<float>::createItem( 
+            static_cast<typename NNSimulator::Solver<float>::ChildId>( outNumberSolver ) 
+    ); 
+    s->read( inBuff );
+    s->solve();
+    std::stringstream outBuff;
+    outBuff << outNumberSolver;
+    s->write( outBuff );
+
+    #if DEBUG 
+        std::cout << "\033[34m";
+        std::cout << outBuff.str() << "\033[0m" << std::endl;
+    #endif
+
+    std::stringstream pyOutBuff;
+    pyOutBuff <<  "       1   4.0000   3.0000   1.0000        10 -45.7826 -56.1882 -45.7826 -56.1882 -56.1882 -56.1882 -56.1882 -56.1882 -66.4870 -66.4870        1        0        1        0        0        0        0        0        0        0   30.0000 -65.0000   6.0000   6.0000   6.0000   6.0000   6.0000   6.0000   6.0000   6.0000   3.0000   3.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000  -7.3661 -12.9218  -7.3661 -12.9218 -12.9218 -12.9218 -12.9218 -12.9218 -13.1083 -13.1083   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.1000   0.1000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -65.0000 -65.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000 ";
+
+    float outSolverBuffVal, outPyBuffVal;
+    while( !pyOutBuff.eof() )
+    {
+        outBuff >> outSolverBuffVal;
+        pyOutBuff >> outPyBuffVal;
+        BOOST_CHECK_CLOSE_FRACTION( outSolverBuffVal, outPyBuffVal, 1e-5 );
+    }
+
+
+}

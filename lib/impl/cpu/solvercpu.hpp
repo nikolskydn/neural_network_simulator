@@ -16,30 +16,48 @@ namespace NNSimulator {
     template<class T> class SolverImplCPU : public SolverImpl<T> {
 
             //! Вспомогательный единичный вектор.
-            std::valarray<T> ones;
+            std::valarray<T> ones_;
 
             //! Вспомогательная обратная маска.
-            std::valarray<bool> maskInv;
+            std::valarray<bool> mInv_;
 
         public:
 
             //! Рассчитать динамику сети.
-            virtual void solveExplicitEulerSpec(
-                const size_t & N_,
-                const T & VPeak_,
-                const T & VReset_,
-                const T &  dt_,
-                const T & simulationTime_,
-                const T & neursParamSpec_,
-                const T & connsParamSpec_,
-                std::valarray<T> & V_,
-                std::valarray<bool> & mask_,
-                std::valarray<T> & I_,
-                std::valarray<T> & weights_,
-                T & t_
+            virtual void solveTest(
+                const size_t & nNeurs,
+                const T & VNeursPeak,
+                const T & VNeursReset,
+                const T &  dt,
+                const T & st,
+                const T & neursParamSpec,
+                const T & connsParamSpec,
+                std::valarray<T> & VNeurs,
+                std::valarray<bool> & mNeurs,
+                std::valarray<T> & INeurs,
+                std::valarray<T> & wConns,
+                T & t
+            ) final;
+
+            //! Реализация модели Е.М. Ижикевича класса PCNN.
+            virtual void solvePCNN(
+                const size_t & nNeurs,
+                const T & VNeursPeak,
+                const T & VNeursReset,
+                const std::valarray<T> aNeurs,
+                const std::valarray<T> bNeurs,
+                const std::valarray<T> cNeurs,
+                const std::valarray<T> dNeurs,
+                const T &  dt,
+                const T & st,
+                std::valarray<T> & VNeurs,
+                std::valarray<T> & UNeurs_,
+                std::valarray<bool> & mNeurs,
+                std::valarray<T> & INeurs,
+                std::valarray<T> & wConns,
+                T & t
             ) final;
     };
-
 }
 
 #endif

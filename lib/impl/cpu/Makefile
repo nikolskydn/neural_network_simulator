@@ -5,7 +5,7 @@ DLIBS=$(SRCS:%.cpp=lib%.so)
 
 all: $(DLIBS)
 
-$(DLIBS): lib%.so: %.cpp %.hpp
+$(DLIBS): lib%.so: %.cpp %.hpp 
 	$(CXX) $(CXXFLAGS) -fpic -shared $< -o $@
 clean:
 	rm -f *.so
