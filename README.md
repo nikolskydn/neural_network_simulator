@@ -11,4 +11,5 @@ from their interface in accordance with the Bridge pattern.
 The latter allows you to build the project for universal and graphics processors. 
 Implementations for graphics processors are made using Cuda technology.
 
-@image html doc/img/schemesolver.png
+![Alt text](https://raw.githubusercontent.com/nikolskydn/neural_network_simulator/master/doc/img/schemesolver.png "Diagram")
+
