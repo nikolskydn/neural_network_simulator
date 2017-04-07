@@ -1,9 +1,9 @@
 CXX=g++-4.9
 CXXFLAGS=-std=c++14
-SRCS=$(wildcard *.cpp)
-TRGS=$(SRCS:%.cpp=%_cuda)
+SRC=nnsimulator.cpp
+TRG=nnsimulatorcuda
 
-$(TRGS): %_cuda: %.cpp
+$(TRG): $(SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cuda -lnnsolvercuda -L/usr/local/cuda/lib64 -lcudart
 
 clean:

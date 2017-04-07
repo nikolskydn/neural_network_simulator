@@ -38,47 +38,62 @@ namespace NNSimulator {
     {
         protected:
 
+            //! Номер решателя.
+            size_t sNum_ {0};
+
             //! Число нейронов. 
             size_t nNeurs_ {0};
 
+            //! Число возбуждающих нейронов. 
+            size_t nNeursExc_ {0};
+
             //! Вектор мембранных потенциалов.
-            std::valarray<T> VNeurs_;
+            std::valarray<T> VNeurs_ {};
 
             //! Предельное значение потенциала.
-            T VNeursPeak_;
+            T VNeursPeak_ {};
 
             //! Значение потенциала после спайка.
-            T VNeursReset_;
+            T VNeursReset_ {};
 
             //! Маска, хранящая спайки.
-            std::valarray<bool> mNeurs_;
+            std::valarray<bool> mNeurs_ {};
 
             //! Вектор токов для нейров. 
-            std::valarray<T> INeurs_;
+            std::valarray<T> INeurs_ {};
 
             //! Матрица весов nNeurs_ x nNeurs_.
-            std::valarray<T> wConns_;
+            std::valarray<T> wConns_ {};
 
             //! Модельное время. 
-            T t_ ;
+            T t_ {0};
 
             //! Шаг по времени.
-            T  dt_ ; 
+            T  dt_ {0}; 
 
             //! Время симуляции.
-            T st_; 
+            T tEnd_ {0}; 
+
+            //! Выходной поток для вывода результатов.  ????
+            //std::ostream * pOutStream_ {nullptr};
+
+            //! Временной период для сохранения дампа.
+            T dtDump_ {0};
 
             //! Указатель на реализацию. 
-            std::unique_ptr<SolverImpl<T>> pImpl_;
+            std::unique_ptr<SolverImpl<T>> pImpl_ {nullptr};
+
+            //! Определяет интерфейс метода для вызова решающего метода из установленной реализации.
+            virtual void solveImpl( const T & cst ) = 0; 
 
     public:
 
             //! Конструктор.
             explicit Solver() :  pImpl_( 
                 #ifdef NN_CUDA_IMPL
-                    std::make_unique<SolverImplCuda<T>>() 
+                    std::make_unique<SolverImplCuda<T>>()
                 #else 
-                    std::make_unique<SolverImplCPU<T>>() 
+                    std::make_unique<SolverImplCPU<T>>()
                 #endif
             ) { }
 
@@ -124,11 +139,14 @@ namespace NNSimulator {
             virtual std::istream& read( std::istream& istr ) 
             {
                 // solver
+                //istr >> sNum;
                 istr >> t_;
-                istr >> st_;
+                istr >> tEnd_;
                 istr >> dt_;
+                istr >> dtDump_;
                 // neurs
                 istr >> nNeurs_ ;
+                istr >> nNeursExc_ ;
                 VNeurs_.resize(nNeurs_);
                 mNeurs_.resize(nNeurs_);
                 for( auto & e: VNeurs_ ) istr >> e;
@@ -148,11 +166,14 @@ namespace NNSimulator {
             { 
                 FormatStream oFStr( ostr );
                 // solver
+                oFStr << sNum_;
                 oFStr << t_;
-                oFStr << st_ ;
+                oFStr << tEnd_ ;
                 oFStr << dt_ ;
+                oFStr << dtDump_;
                 // neurs
                 oFStr << nNeurs_;
+                oFStr << nNeursExc_;
                 for( const auto & e: VNeurs_ ) oFStr << e ;  
                 for( const auto & e: mNeurs_ ) oFStr << e ;  
                 oFStr << VNeursPeak_ <<  VNeursReset_ ;
@@ -162,8 +183,22 @@ namespace NNSimulator {
                 return oFStr;
             }
 
-            //! Выполнить решение.
-            virtual void solve() = 0; 
+            //void setPOutStream( std::ostream * postr ){ pOutStream_ = postr; }
+
+            void solve( std::ostream && ostr = std::ostream(nullptr) )
+            {
+                T cte = t_;
+                if( ostr ) ostr << *this << std::endl;
+                cte += dtDump_;
+                while( t_ <= tEnd_ ) 
+                {
+                    solveImpl( cte );
+                    cte = t_;
+                    if( ostr ) ostr << *this << std::endl;
+                    cte += dtDump_;
+                } 
+            }
+
     };
 
 } // namespace

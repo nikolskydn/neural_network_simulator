@@ -34,6 +34,7 @@ namespace NNSimulator {
         //! Реализация модели Е.М. Ижикевича класса PCNN.
         virtual void solvePCNN(
             const size_t & nNeurs,
+            const size_t & nNeursExc,
             const T & VNeursPeak,
             const T & VNeursReset,
             const std::valarray<T> aNeurs,

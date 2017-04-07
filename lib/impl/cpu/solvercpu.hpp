@@ -15,6 +15,9 @@ namespace NNSimulator {
     //! Класс решателя для универсальных процессоров. 
     template<class T> class SolverImplCPU : public SolverImpl<T> {
 
+            //! Заполняет входной массив случайными числами из нормалного распределения с использованием ГПСЧ "Вихрь Мерсенна".
+            void makeRandn( std::valarray<T> & v );
+
             //! Вспомогательный единичный вектор.
             std::valarray<T> ones_;
 
@@ -42,6 +45,7 @@ namespace NNSimulator {
             //! Реализация модели Е.М. Ижикевича класса PCNN.
             virtual void solvePCNN(
                 const size_t & nNeurs,
+                const size_t & nNeursExc,
                 const T & VNeursPeak,
                 const T & VNeursReset,
                 const std::valarray<T> aNeurs,

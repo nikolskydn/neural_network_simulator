@@ -34,7 +34,7 @@ namespace NNSimulator {
 
     }
 
-    //! Полная специализация метода solveExplicitEuler для float.
+    //! Полная специализация метода solveTest для float.
     template<> 
     void SolverImplCuda<float>::solveTest(
         const size_t & nN, // nNeurs

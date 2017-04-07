@@ -8,7 +8,7 @@ DPNDS=$(wildcard ../lib/solver*.hpp)
 all: $(TRGS)
 
 $(TRGS): %_cpu: %.cpp $(DPNDS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cpu -lsolvercpu
+	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cpu -lnnsolvercpu
 
 clean:
 	rm -f $(TRGS)

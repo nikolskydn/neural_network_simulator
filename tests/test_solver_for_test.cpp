@@ -8,6 +8,7 @@
 #include <type_traits>
 #include "../lib/solver.hpp"
 #include "../lib/formatstream.hpp"
+#include "../lib/solversbuffer.hpp"
 
 #define DEBUG 1
 
@@ -17,6 +18,7 @@ BOOST_AUTO_TEST_CASE (testSorverForTest)
 {
     size_t neursType = 0;
     size_t nNeurs = 3;
+    size_t nNeursExc = 0;
     float  paramSpecNeurs = 10.;
     float VPeak = 3;
     float VReset = -10;
@@ -31,6 +33,7 @@ BOOST_AUTO_TEST_CASE (testSorverForTest)
 
     float  t = 0.;
     float dt = 0.2;
+    float dtDump = dt/2.;
     float simulationTime = dt/2.;
 
     std::stringstream inBuff;
@@ -38,9 +41,9 @@ BOOST_AUTO_TEST_CASE (testSorverForTest)
 
     // solver
     size_t numberSolver = 0;
-    inFBuff << numberSolver << t << simulationTime << dt;
+    inFBuff << numberSolver << t << simulationTime << dt << dtDump;
     // neurs
-    inFBuff << nNeurs  
+    inFBuff << nNeurs  << nNeursExc
             << V[0] << V[1] << V[2] 
             << mask[0] << mask[1] << mask[2] 
             << VPeak  << VReset;
@@ -55,12 +58,12 @@ BOOST_AUTO_TEST_CASE (testSorverForTest)
     inFBuff << paramSpecNeurs << paramSpecConns;
 
     #if DEBUG 
-        std::cout << "SolverForTest\033[31;1m";
+        std::cout << "\nSolverForTest\n\n\033[31;1m";
         FormatStream f(std::cout, 5);
         // solver:
-        f << "nS" << "t" << "sT" << "dt" ;
+        f << "nS" << "t" << "tE" << "dt" << "dD";
         // neurs :
-        f << "nN";
+        f << "nN" << "nE";
         f<< "V" ; for(int i=1; i<nNeurs; ++i ) f << ' ';
         f<< "m" ; for(int i=1; i<nNeurs; ++i ) f << ' ';
         f << "VP" << "VR" ;
@@ -85,7 +88,6 @@ BOOST_AUTO_TEST_CASE (testSorverForTest)
 
     #if DEBUG 
         std::cout << "\033[34m";
-        f <<  outNumberSolver;
         std::cout << outBuff.str() << "\033[0m" << std::endl;
     #endif
 
@@ -98,6 +100,10 @@ BOOST_AUTO_TEST_CASE (testSorverForTest)
      *     mask = V>VPeak
      * }
      */
+    size_t outNS;
+    outBuff >> outNS;
+    BOOST_CHECK( outNumberSolver == outNS ); 
+
     float outt;
     outBuff >> outt;
     BOOST_CHECK_CLOSE_FRACTION( outt, t+dt, std::numeric_limits<float>::epsilon() );
@@ -110,9 +116,18 @@ BOOST_AUTO_TEST_CASE (testSorverForTest)
     outBuff >> outDt;
     BOOST_CHECK_CLOSE_FRACTION( outDt, dt, std::numeric_limits<float>::epsilon() );
 
+    float outDtDump;
+    outBuff >> outDtDump;
+    BOOST_CHECK_CLOSE_FRACTION( outDtDump, dtDump, std::numeric_limits<float>::epsilon() );
+
+
     size_t outNNeurs;
     outBuff >> outNNeurs;
     BOOST_CHECK( outNNeurs == nNeurs ); 
+
+    size_t outNNeursExc;
+    outBuff >> outNNeursExc;
+    BOOST_CHECK( outNNeursExc == nNeursExc ); 
 
     std::vector<float> outV(nNeurs);
     for(size_t i=0; i<nNeurs; ++i ){
@@ -180,14 +195,15 @@ BOOST_AUTO_TEST_CASE (testSorverForTest)
 
 BOOST_AUTO_TEST_CASE (TestSolverPCNN)
 {
-    size_t nNeurs = 3;
-    std::stringstream inBuff;
-    inBuff << "       1   0.0000   3.0000   1.0000        10 -50.0000 -65.0000 -50.0000 -65.0000 -65.0000 -65.0000 -65.0000 -65.0000 -65.0000 -65.0000        0        0        0        0        0        0        0        0        0        0   30.0000 -65.0000   5.0000   5.0000   5.0000   5.0000   5.0000   5.0000   5.0000   5.0000   2.0000   2.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000 -10.0000 -13.0000 -10.0000 -13.0000 -13.0000 -13.0000 -13.0000 -13.0000 -13.0000 -13.0000   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.1000   0.1000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -65.0000 -65.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   ";
+
+    std::cout << "\n\033[32;1m Uncomment line  '#define NN_TEST_SOLVERS' in the setting.h and rebuild libs \033[0m\n"; 
+
+    std::string inFileName = "solverpcnnie.in";
+    SolversBuffer inBuff;
+    inBuff.readFile(inFileName);
 
     #if DEBUG 
         std::cout << "\nSolverPCNN\n\033[31;1m";
-        FormatStream f(std::cout, 8);
-        std::cout << "\033[0m" << std::endl;
         std::cout << "\033[31m" <<  inBuff.str() << "\033[0m" << std::endl;
     #endif
 
@@ -200,7 +216,7 @@ BOOST_AUTO_TEST_CASE (TestSolverPCNN)
     s->read( inBuff );
     s->solve();
     std::stringstream outBuff;
-    outBuff << outNumberSolver;
+    //outBuff << outNumberSolver;
     s->write( outBuff );
 
     #if DEBUG 
@@ -208,8 +224,9 @@ BOOST_AUTO_TEST_CASE (TestSolverPCNN)
         std::cout << outBuff.str() << "\033[0m" << std::endl;
     #endif
 
-    std::stringstream pyOutBuff;
-    pyOutBuff <<  "       1   4.0000   3.0000   1.0000        10 -45.7826 -56.1882 -45.7826 -56.1882 -56.1882 -56.1882 -56.1882 -56.1882 -66.4870 -66.4870        1        0        1        0        0        0        0        0        0        0   30.0000 -65.0000   6.0000   6.0000   6.0000   6.0000   6.0000   6.0000   6.0000   6.0000   3.0000   3.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000   0.5000  -1.0000  -1.0000  -7.3661 -12.9218  -7.3661 -12.9218 -12.9218 -12.9218 -12.9218 -12.9218 -13.1083 -13.1083   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.0200   0.1000   0.1000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000   0.2000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -50.0000 -65.0000 -65.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000   2.0000 ";
+    std::string pyOutFileName = "solverpcnnie.end";
+    SolversBuffer pyOutBuff;
+    pyOutBuff.readFile(pyOutFileName);
 
     float outSolverBuffVal, outPyBuffVal;
     while( !pyOutBuff.eof() )

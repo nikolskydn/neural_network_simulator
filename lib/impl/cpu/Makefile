@@ -1,11 +1,11 @@
 CXX=g++-4.9
 CXXFLAGS=--std=c++14
 SRCS=$(wildcard *.cpp)
-DLIBS=$(SRCS:%.cpp=lib%.so)
+DLIBS=$(SRCS:%.cpp=libnn%.so)
 
 all: $(DLIBS)
 
-$(DLIBS): lib%.so: %.cpp %.hpp 
+$(DLIBS): libnn%.so: %.cpp %.hpp ../../setting.h
 	$(CXX) $(CXXFLAGS) -fpic -shared $< -o $@
 clean:
 	rm -f *.so

@@ -34,6 +34,7 @@ namespace NNSimulator {
             //! Интерфейс реализации модели Е.М. Ижикевича, принадлежащей классу сетей PCNN.
             virtual void solvePCNN(
                 const size_t & nNeurs,
+                const size_t & nNeursExc,
                 const T & VNeursPeak,
                 const T & VNeursReset,
                 const std::valarray<T> aNeurs,

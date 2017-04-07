@@ -29,7 +29,7 @@ namespace NNSimulator {
             using Solver<T>::INeurs_;
             using Solver<T>::wConns_;
             using Solver<T>::t_;
-            using Solver<T>::st_;
+            using Solver<T>::tEnd_;
             using Solver<T>::dt_;
             using Solver<T>::pImpl_;
 
@@ -40,6 +40,26 @@ namespace NNSimulator {
 
             //! Некоторый специальный параметр синапсов.
             T connsParamSpec_;
+
+            //! Выполнить решение \details Выполняется вызов установленной реализации.
+            virtual void solveImpl( const T & cte ) final
+            {
+                pImpl_->solveTest
+                ( 
+                    nNeurs_,
+                    VNeursPeak_,
+                    VNeursReset_,
+                    dt_,
+                    cte,
+                    neursParamSpec_,
+                    connsParamSpec_,
+                    VNeurs_,
+                    mNeurs_,
+                    INeurs_,
+                    wConns_,
+                    t_
+                );
+            }
 
         public:
 
@@ -60,26 +80,6 @@ namespace NNSimulator {
 
             //! Перемещающий оператор присваивания.
             SolverForTest& operator=( const SolverForTest&& ) = delete;
-
-            //! Выполнить решение \details Выполняется вызов установленной реализации.
-            virtual void solve() final
-            {
-                pImpl_->solveTest
-                ( 
-                    nNeurs_,
-                    VNeursPeak_,
-                    VNeursReset_,
-                    dt_,
-                    st_,
-                    neursParamSpec_,
-                    connsParamSpec_,
-                    VNeurs_,
-                    mNeurs_,
-                    INeurs_,
-                    wConns_,
-                    t_
-                );
-            }
 
             //! Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const final

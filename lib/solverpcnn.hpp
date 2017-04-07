@@ -32,7 +32,9 @@ namespace NNSimulator {
     template<class T> class SolverPCNN: public Solver<T>
     {
 
+            using Solver<T>::sNum_;
             using Solver<T>::nNeurs_;
+            using Solver<T>::nNeursExc_;
             using Solver<T>::VNeurs_;
             using Solver<T>::VNeursPeak_;
             using Solver<T>::VNeursReset_;
@@ -40,32 +42,57 @@ namespace NNSimulator {
             using Solver<T>::INeurs_;
             using Solver<T>::wConns_;
             using Solver<T>::t_;
-            using Solver<T>::st_;
+            using Solver<T>::tEnd_;
             using Solver<T>::dt_;
+            //using Solver<T>::pOutStream_;
+            using Solver<T>::dtDump_;
             using Solver<T>::pImpl_;
 
         protected:
 
             //! Вектор мембранной восстановительной переменной \f$U\f$. \details Обеспечивает обратную связь. Определяет активацию ионного тока \f$K^+\f$ и деактивацию ионов \f$Na^+\f$.
-            std::valarray<T> UNeurs_;
+            std::valarray<T> UNeurs_ {};
             
             //! Вектор параметров \f$a\f$ из основной системы ОДУ. \details Определяет временной ммасштаб восстановительной переменной \f$U\f$.
-            std::valarray<T> aNeurs_;
+            std::valarray<T> aNeurs_ {};
 
             //! Вектор параметров \f$b\f$ из основной системы ОДУ. \details Определяет чувствительность восстановительной переменной \f$U\f$.
-            std::valarray<T> bNeurs_;
+            std::valarray<T> bNeurs_ {};
 
             //! Вектор для вычисления значений мембранных потенциалов после спайка.
-            std::valarray<T> cNeurs_;
+            std::valarray<T> cNeurs_ {};
 
             //! Вектор для вычисления значений восстановительной переменной \f$U\f$ после спайка.
-            std::valarray<T> dNeurs_;
+            std::valarray<T> dNeurs_ {};
 
+            //! Выполнить решение \details Выполняется вызов установленной реализации.
+            virtual void solveImpl( const T & cte ) final
+            {
+                pImpl_->solvePCNN
+                (
+                    nNeurs_,
+                    nNeursExc_,
+                    VNeursPeak_,
+                    VNeursReset_,
+                    aNeurs_,
+                    bNeurs_,
+                    cNeurs_,
+                    dNeurs_,
+                    dt_,
+                    cte,
+                    VNeurs_,
+                    UNeurs_,
+                    mNeurs_,
+                    INeurs_,
+                    wConns_,
+                    t_
+                );
+            }
 
         public:
 
             //! Конструктор.
-            explicit SolverPCNN() :  Solver<T>()  {}
+            explicit SolverPCNN() :  Solver<T>()  { sNum_ = 1; }
 
             //! Деструктор.
             virtual ~SolverPCNN() = default;
@@ -82,33 +109,12 @@ namespace NNSimulator {
             //! Перемещающий оператор присваивания.
             SolverPCNN& operator=( const SolverPCNN&& ) = delete;
 
-            //! Выполнить решение \details Выполняется вызов установленной реализации.
-            virtual void solve() final
-            {
-                pImpl_->solvePCNN
-                ( 
-                    nNeurs_,
-                    VNeursPeak_,
-                    VNeursReset_,
-                    aNeurs_,
-                    bNeurs_,
-                    cNeurs_,
-                    dNeurs_,
-                    dt_,
-                    st_,
-                    VNeurs_,
-                    UNeurs_,
-                    mNeurs_,
-                    INeurs_,
-                    wConns_,
-                    t_
-                );
-            }
 
             //! Метод вывода параметров в поток. 
             virtual std::ostream& write( std::ostream& ostr ) const final
             {
                 FormatStream oFStr( Solver<T>::write( ostr ) );
+                //oFStr << sNum_;
                 for( const auto & e: UNeurs_ ) oFStr << e ;  
                 for( const auto & e: aNeurs_ ) oFStr << e ;  
                 for( const auto & e: bNeurs_ ) oFStr << e ;  
