@@ -6,6 +6,8 @@
 #ifndef _NNetworkSimulatorFormatStreamNDN2017_
 #define _NNetworkSimulatorFormatStreamNDN2017_
 
+#include <iomanip>
+
 //! Класс для форматировия вывода в поток. \details Позволяет настроить ширину поля. Выводит завершающий пробел.
 class FormatStream { // FormatOStream
 

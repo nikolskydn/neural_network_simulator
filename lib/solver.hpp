@@ -13,8 +13,8 @@
 #include <type_traits>
 #include "formatstream.hpp"
 
-#include "solvertest.hpp"
-#include "solverpcnn.hpp"
+#include "data.hpp"
+#include "solverpcnni2003e.hpp"
 
 #include "setting.h"
 #ifdef NN_CUDA_IMPL 
@@ -26,8 +26,9 @@
 
 namespace NNSimulator {
 
-    template<class T> class SolverForTest;
-    template<class T> class SolverPCNN;
+    template<class T> class Data;
+
+    template<class T> class SolverPCNNI2003E;
 
     template<class T> class SolverImpl;
     template<class T> class SolverImplCPU;
@@ -39,63 +40,41 @@ namespace NNSimulator {
         protected:
 
             //! Номер решателя.
-            size_t sNum_ {0};
+            const size_t sNum_;
 
-            //! Число нейронов. 
-            size_t nNeurs_ {0};
+            //! Номер набора данных.
+            const size_t dNum_ ;
 
-            //! Число возбуждающих нейронов. 
-            size_t nNeursExc_ {0};
-
-            //! Вектор мембранных потенциалов.
-            std::valarray<T> VNeurs_ {};
-
-            //! Предельное значение потенциала.
-            T VNeursPeak_ {};
-
-            //! Значение потенциала после спайка.
-            T VNeursReset_ {};
-
-            //! Маска, хранящая спайки.
-            std::valarray<bool> mNeurs_ {};
-
-            //! Вектор токов для нейров. 
-            std::valarray<T> INeurs_ {};
-
-            //! Матрица весов nNeurs_ x nNeurs_.
-            std::valarray<T> wConns_ {};
-
-            //! Модельное время. 
-            T t_ {0};
-
-            //! Шаг по времени.
-            T  dt_ {0}; 
-
-            //! Время симуляции.
-            T tEnd_ {0}; 
-
-            //! Выходной поток для вывода результатов.  ????
-            //std::ostream * pOutStream_ {nullptr};
-
-            //! Временной период для сохранения дампа.
-            T dtDump_ {0};
+            //! Указатель на данные. 
+            std::unique_ptr<Data<T>> pData_ {nullptr};
 
             //! Указатель на реализацию. 
             std::unique_ptr<SolverImpl<T>> pImpl_ {nullptr};
 
             //! Определяет интерфейс метода для вызова решающего метода из установленной реализации.
-            virtual void solveImpl( const T & cst ) = 0; 
+            virtual void solveImpl_( const T & cst ) = 0; 
 
     public:
 
             //! Конструктор.
-            explicit Solver() :  pImpl_( 
-                #ifdef NN_CUDA_IMPL
-                    std::make_unique<SolverImplCuda<T>>()
-                #else 
-                    std::make_unique<SolverImplCPU<T>>()
-                #endif
-            ) { }
+            explicit Solver( const size_t & dNum, const size_t & sNum ) :  
+                sNum_(sNum),
+                dNum_(dNum),
+                pData_
+                (
+                    Data<float>::createItem(
+                        static_cast<typename Data<T>::ChildId>( dNum_ )
+                    )
+                ),
+                pImpl_
+                (
+                    #ifdef NN_CUDA_IMPL
+                        std::make_unique<SolverImplCuda<T>>()
+                    #else 
+                        std::make_unique<SolverImplCPU<T>>()
+                    #endif
+                )
+            {}
 
             //! Деструктор.
             virtual ~Solver() = default;
@@ -115,8 +94,7 @@ namespace NNSimulator {
             //! Перечисление с типами решателей.
             enum ChildId : size_t
             {  
-                SolverForTestId = 0, //!< явный метод Эйлера для модели некоторой тестовой модели Spec
-                SolverPCNNId = 1, //!< модель Е.М. Ижикевича 2003
+                SolverPCNNI2003EId = 1, //!< Е.М. Ижикевич, 2003, метод Эйлера 
             };
 
             //! Фабричный метод создания конкретного решателя. 
@@ -125,84 +103,37 @@ namespace NNSimulator {
                 std::unique_ptr<Solver<T>> ptr;
                 switch( id )
                 {
-                    case SolverForTestId:
-                        ptr = std::unique_ptr<Solver<T>>( std::make_unique<SolverForTest<T>>() );
-                    break;
-                    case SolverPCNNId:
-                        ptr = std::unique_ptr<Solver<T>>( std::make_unique<SolverPCNN<T>>() );
+                    case SolverPCNNI2003EId:
+                        ptr = std::unique_ptr<Solver<T>>( std::make_unique<SolverPCNNI2003E<T>>() );
                     break;
                 }
                 return ptr;
             }
             
-            //! Потоковое чтение данных.
-            virtual std::istream& read( std::istream& istr ) 
-            {
-                // solver
-                //istr >> sNum;
-                istr >> t_;
-                istr >> tEnd_;
-                istr >> dt_;
-                istr >> dtDump_;
-                // neurs
-                istr >> nNeurs_ ;
-                istr >> nNeursExc_ ;
-                VNeurs_.resize(nNeurs_);
-                mNeurs_.resize(nNeurs_);
-                for( auto & e: VNeurs_ ) istr >> e;
-                for( auto & e: mNeurs_ ) istr >> e;
-                istr >> VNeursPeak_ >> VNeursReset_;
-                // conns
-                INeurs_.resize(nNeurs_);
-                for( auto & e: INeurs_ ) istr >> e;
-                size_t nConns = nNeurs_ * nNeurs_;
-                wConns_.resize(nConns);
-                for( auto & e: wConns_ ) istr >> e;
-                return istr;
-            }
-
-            //! Потоковая запись данных.
-            virtual std::ostream& write( std::ostream& ostr ) const 
-            { 
-                FormatStream oFStr( ostr );
-                // solver
-                oFStr << sNum_;
-                oFStr << t_;
-                oFStr << tEnd_ ;
-                oFStr << dt_ ;
-                oFStr << dtDump_;
-                // neurs
-                oFStr << nNeurs_;
-                oFStr << nNeursExc_;
-                for( const auto & e: VNeurs_ ) oFStr << e ;  
-                for( const auto & e: mNeurs_ ) oFStr << e ;  
-                oFStr << VNeursPeak_ <<  VNeursReset_ ;
-                // conns
-                for( const auto & e: INeurs_ ) oFStr << e ;
-                for( const auto & e: wConns_ ) oFStr << e  ;
-                return oFStr;
-            }
-
-            //void setPOutStream( std::ostream * postr ){ pOutStream_ = postr; }
 
             void solve( std::ostream && ostr = std::ostream(nullptr) )
             {
-                T cte = t_;
+                T cte = pData_->t;
                 if( ostr ) ostr << *this << std::endl;
-                cte += dtDump_;
-                while( t_ <= tEnd_ ) 
+                cte += pData_->dtDump;
+                while( pData_->t <= pData_->tEnd ) 
                 {
-                    solveImpl( cte );
-                    cte = t_;
+                    solveImpl_( cte );
+                    cte = pData_->t;
                     if( ostr ) ostr << *this << std::endl;
-                    cte += dtDump_;
+                    cte += pData_->dtDump;
                 } 
             }
+
+            //! Потоковое чтение данных.
+            virtual std::istream& read( std::istream& istr ) = 0 ;
+
+            //! Потоковая запись данных.
+            virtual std::ostream& write( std::ostream& ostr ) const = 0 ;
 
     };
 
 } // namespace
-
 
 //! Оператор потокового вывода.
 template<class T>

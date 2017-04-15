@@ -6,17 +6,20 @@
 #include "../lib/formatstream.hpp"
 #include "../lib/solversbuffer.hpp"
 
-#define DEBUG 1
+#define DEBUG 0
 
 
 int main(int argc, char* argv[])
 {
-    std::string inFileName = "pcnnmodel.in";
+    std::string inFileName = argv[1];
+
+    if( inFileName.empty() ) std::cout << "set file name\n";
+
     SolversBuffer inBuff;
     inBuff.readFile(inFileName);
     #if DEBUG 
         std::cout << "\nSolverPCNN\n\033[31;1m";
-        std::cout << "\033[31m" <<  inBuff.str() << "\033[0m" << std::endl;
+        std::cout << "\033[32m" <<  inBuff.str() << "\033[0m" << std::endl;
     #endif
 
     size_t outNumberSolver;
@@ -29,7 +32,7 @@ int main(int argc, char* argv[])
     ); 
     s->read( inBuff );
 
-    std::string outFileName = "pcnnmodel.out";
+    std::string outFileName = "pcnn.out";
     std::ofstream outFileStream( outFileName );
 
     s->solve( std::move(outFileStream) );

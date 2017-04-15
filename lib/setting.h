@@ -6,6 +6,7 @@
 
     // uncomment for testing
     //#define NN_TEST_SOLVERS
+    #undef NN_TEST_SOLVERS
 
 #endif
 

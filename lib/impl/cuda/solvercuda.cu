@@ -1,8 +1,3 @@
-/** @addtogroup Solver
- * @{*/
-
-/** @file */
-
 #include <valarray>
 #include "solvercuda.hpp"
 
@@ -34,9 +29,9 @@ namespace NNSimulator {
 
     }
 
-    //! Полная специализация метода solveTest для float.
+    //! Полная специализация метода solvePCNNI2003E для float.
     template<> 
-    void SolverImplCuda<float>::solveTest(
+    void SolverImplCuda<float>::solvePCNN(
         const size_t & nN, // nNeurs
         const float & VP, // VPeak
         const float & VR, // VReset

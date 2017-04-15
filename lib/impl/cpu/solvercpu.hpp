@@ -1,4 +1,4 @@
-/** @addtogroup Solvers
+/** @addtogroup SolversImpl
  * @{*/
 
 /** @file */
@@ -26,24 +26,8 @@ namespace NNSimulator {
 
         public:
 
-            //! Рассчитать динамику сети.
-            virtual void solveTest(
-                const size_t & nNeurs,
-                const T & VNeursPeak,
-                const T & VNeursReset,
-                const T &  dt,
-                const T & st,
-                const T & neursParamSpec,
-                const T & connsParamSpec,
-                std::valarray<T> & VNeurs,
-                std::valarray<bool> & mNeurs,
-                std::valarray<T> & INeurs,
-                std::valarray<T> & wConns,
-                T & t
-            ) final;
-
-            //! Реализация модели Е.М. Ижикевича класса PCNN.
-            virtual void solvePCNN(
+            //! \brief Реализация модели Е.М. Ижикевича (2003) методом Эйлера. \details Численная схема приведена в базовом классе SolverImpl.
+            virtual void solvePCNN2003E(
                 const size_t & nNeurs,
                 const size_t & nNeursExc,
                 const T & VNeursPeak,
