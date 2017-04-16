@@ -2,6 +2,7 @@
 from numpy import *
 import sys
 nS=1
+nD=1
 Ne=800
 Ni=200
 t=0
@@ -25,9 +26,9 @@ VP=30
 m=V>=VP
 U=b*V
 I=r_[5*random.randn(Ne),2*random.randn(Ni)]
-
 def printInFile():
     print "# nS\n%i" % nS
+    print "# nD\n%i" % nD
     print "# t\n%f" % t
     print "# tEnd\n%f" % tEnd
     print "# dt\n%f" % dt
