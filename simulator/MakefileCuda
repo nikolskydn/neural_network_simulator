@@ -1,11 +1,11 @@
 CXX=g++-4.9
 CXXFLAGS=-std=c++14
-SRC=nnsimulator.cpp
+SRCS=nnsimulator.cpp
 TRG=nnsimulatorcuda
 
 $(TRG): $(SRCS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cuda -lnnsolvercuda -L/usr/local/cuda/lib64 -lcudart
 
 clean:
-	rm -f $(TRGS)
+	rm -f $(TRG)
 

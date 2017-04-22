@@ -1,1 +1,1 @@
-g++-4.9 -std=c++14 makespikes.cpp -o makespikes
+g++-4.9 -std=c++14 makespikes.cpp -o makespikes && ./makespikes $1

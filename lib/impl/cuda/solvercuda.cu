@@ -1,109 +1,181 @@
 #include <valarray>
+#include <cmath>
 #include "solvercuda.hpp"
+#include <curand_kernel.h>
 
 #include <iostream>
 
+#define CudaTimeDebug 1
+
 namespace NNSimulator {
 
-    __global__ void solveTestKernelG(  
+    __global__ void solvePCNNI2003KernelG( 
+        const int *nN,
+        const int *nE,
         const float *VP,
-        const float *VR,
+        const float *a,
+        const float *b,
+        const float *c,
+        const float *d,
         const float *dt,
-        const float *st,
-        const float *np,
-        const float *cp,
-        float *V,
-        bool *m,
-        float *I,
-        float *w,
+        const float *te,
+        float *V, 
+        float *U, 
+        bool *m, 
+        float *I, 
+        float *w, 
         float *t
+        //, 
+        //float *spk, 
+        //float *osc 
     ) 
     {
         int i = threadIdx.x + blockIdx.x * blockDim.x;
-        if( m[i] ) V[i] = *VR;
-        else V[i] += (*np)*I[i]*(*dt);
-        m[i] = V[i] > *VP;
-        if(V[i]>(*VP)) I[i] += (*cp)*V[i]*(*dt);
-        else I[i] *= 0.5;
-        *t += *dt;
-
+        curandState s;
+        curand_init(i, 0, 0, &s);
+        int ct = *t;
+        while( ct< (*te) )
+        {
+            if( m[i] ) 
+            {
+                V[i] = c[i];
+                U[i] += d[i];
+            }
+            if( i<(*nE) ) 
+                I[i] = 5.*curand_uniform(&s); 
+            else 
+                I[i] = 2.*curand_uniform(&s);
+            for( size_t j=0; j<(*nN); ++j ) if( m[j] ) I[i] += w[i*(*nN)+j];
+            V[i] += .5*(*dt)*( .04*V[i]*V[i] + 5.*V[i] + 140. - U[i] + I[i] );
+            V[i] += .5*(*dt)*( .04*V[i]*V[i] + 5.*V[i] + 140. - U[i] + I[i] );
+            U[i] += (*dt)*a[i]*( b[i]*V[i] - U[i] );
+            m[i] = V[i] > (*VP);
+            ct += *dt;
+        }
+        if( i==0 ) *t = ct;
     }
 
     //! Полная специализация метода solvePCNNI2003E для float.
     template<> 
-    void SolverImplCuda<float>::solvePCNN(
-        const size_t & nN, // nNeurs
-        const float & VP, // VPeak
-        const float & VR, // VReset
+    void SolverImplCuda<float>::solvePCNNI2003E
+    (
+        const size_t & nN,
+        const size_t & nE,
+        const float & VP,
+        const float & VR,
+        const std::valarray<float> aN,
+        const std::valarray<float> bN,
+        const std::valarray<float> cN,
+        const std::valarray<float> dN,
         const float &  dt,
-        const float & st, // simulationTime
-        const float & np, // neuronsParamSpec
-        const float & cp, // connectsParamSpec
-        std::valarray<float> & V,
-        std::valarray<bool> & m, // mask
-        std::valarray<float> & I,
-        std::valarray<float> & w, // weight
-        float & t
+        const float & te,
+        std::valarray<float> & VN,
+        std::valarray<float> & UN,
+        std::valarray<bool> & mN,
+        std::valarray<float> & IN,
+        std::valarray<float> & wC,
+        float & t,
+        std::vector<std::pair<size_t,float>> & spk,
+        std::vector<std::pair<size_t,std::valarray<float>>> & osc
     ) 
     {
-        size_t nSize = nN*sizeof(float);
-        size_t bSize = nN*sizeof(bool);
-        size_t size = sizeof(float);
 
-        float *VPD;
-        float *VRD;
-        float *dtD;
-        float *stD;
-        float *npD;
-        float *cpD;
-        float *VD;  
-        bool *mD;  
-        float *ID;  
-        float *wD; 
-        float *tD;
+        size_t fnN = nN*sizeof(float);
+        size_t nC = nN*nN;
+        size_t fnC = nC*sizeof(float);
+        size_t bnN = nN*sizeof(bool);
+        size_t f1 = sizeof(float);
+        size_t i1 = sizeof(int);
+        //size_t fnS = 100000*sizeof(float);
+        //size_t fnO = 100000*sizeof(float);
 
-        cudaMalloc( (void**)&VPD, size);
-        cudaMalloc( (void**)&VRD, size);
-        cudaMalloc( (void**)&dtD, size);
-        cudaMalloc( (void**)&stD, size);
-        cudaMalloc( (void**)&npD, size);
-        cudaMalloc( (void**)&cpD, size);
-        cudaMalloc( (void**)&VD, nSize);
-        cudaMalloc( (void**)&mD, bSize);
-        cudaMalloc( (void**)&ID, nSize);
-        cudaMalloc( (void**)&wD, nSize*nSize);
-        cudaMalloc( (void**)&tD, size);
+        int *nND;   cudaMalloc( (void**)&nND, i1 );
+        int *nED;   cudaMalloc( (void**)&nED, i1 );
+        float *VPD;   cudaMalloc( (void**)&VPD, f1 );
+        //float *VRD;   cudaMalloc( (void**)&VRD, f1 );
+        float *aND;   cudaMalloc( (void**)&aND, fnN );
+        float *bND;   cudaMalloc( (void**)&bND, fnN );
+        float *cND;   cudaMalloc( (void**)&cND, fnN );
+        float *dND;   cudaMalloc( (void**)&dND, fnN );
+        float *dtD;   cudaMalloc( (void**)&dtD, f1 );
+        float *teD;   cudaMalloc( (void**)&teD, f1 );
+        float *VND;   cudaMalloc( (void**)&VND, fnN );
+        float *UND;   cudaMalloc( (void**)&UND, fnN );
+        bool *mND;    cudaMalloc( (void**)&mND, bnN );
+        float *IND;   cudaMalloc( (void**)&IND, fnN );
+        float *wCD;   cudaMalloc( (void**)&wCD, fnC );
+        float *tD;    cudaMalloc( (void**)&tD, f1 );
+        //float *spkD;  cudaMalloc( (void**)&spkD, fnS );
+        //float *oscD;  cudaMalloc( (void**)&oscD, fnO );
 
-        cudaMemcpy( VPD, &VP, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( VRD, &VR, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( dtD, &dt, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( stD, &st, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( npD, &np, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( cpD, &cp, size, cudaMemcpyHostToDevice );
-        cudaMemcpy( VD, &V[0], nSize, cudaMemcpyHostToDevice );
-        cudaMemcpy( mD, &m[0], bSize, cudaMemcpyHostToDevice );
-        cudaMemcpy( ID, &I[0], nSize, cudaMemcpyHostToDevice );
-        cudaMemcpy( wD, &w[0], nSize*nSize, cudaMemcpyHostToDevice );
-        cudaMemcpy( tD, &t, size, cudaMemcpyHostToDevice );
+        int tmpnN = static_cast<int>(nN);
+        int tmpnE = static_cast<int>(nE);
+        cudaMemcpy( nND,  &tmpnN,     i1,   cudaMemcpyHostToDevice );
+        cudaMemcpy( nED,  &tmpnE,     i1,   cudaMemcpyHostToDevice );
+        cudaMemcpy( VPD,  &VP,     f1,   cudaMemcpyHostToDevice );
+        //cudaMemcpy( VRD,  &VR,     size,   cudaMemcpyHostToDevice );
+        cudaMemcpy( aND,  &aN[0],  fnN,  cudaMemcpyHostToDevice );
+        cudaMemcpy( bND,  &bN[0],  fnN,  cudaMemcpyHostToDevice );
+        cudaMemcpy( cND,  &cN[0],  fnN,  cudaMemcpyHostToDevice );
+        cudaMemcpy( dND,  &dN[0],  fnN,  cudaMemcpyHostToDevice );
+        cudaMemcpy( dtD,  &dt,     f1,   cudaMemcpyHostToDevice );
+        cudaMemcpy( teD,  &te,     f1,   cudaMemcpyHostToDevice );
+        cudaMemcpy( VND,  &VN[0],  fnN,  cudaMemcpyHostToDevice );
+        cudaMemcpy( UND,  &UN[0],  fnN,  cudaMemcpyHostToDevice );
+        cudaMemcpy( mND,  &mN[0],  bnN,  cudaMemcpyHostToDevice );
+        cudaMemcpy( IND,  &IN[0],  fnN,  cudaMemcpyHostToDevice );
+        cudaMemcpy( wCD,  &wC[0],  fnC,  cudaMemcpyHostToDevice );
+        cudaMemcpy( tD,   &t,      f1,   cudaMemcpyHostToDevice );
+        //cudaMemcpy( spkD, &spk[0], fnS,  cudaMemcpyHostToDevice );
+        //cudaMemcpy( oscD, &osc[0], fnO,  cudaMemcpyHostToDevice );
 
-        solveTestKernelG<<< 1, nN >>>( VPD, VRD, dtD, stD, npD, cpD, VD, mD,  ID,  wD, tD);
+#if CudaTimeDebug>0
+        cudaEvent_t bTime, eTime;
+        float cudaTime = .0f;
+        cudaEventCreate( &bTime );
+        cudaEventCreate( &eTime );
+        cudaEventRecord( bTime, 0 );
+#endif
+        solvePCNNI2003KernelG<<< 1, nN >>>
+        ( 
+            nND, nED, VPD, aND, bND, cND, dND, dtD, teD, 
+            VND, UND, mND, IND, wCD, tD /*, spkD, oscD */
+        );
 
-        cudaMemcpy( &t, tD, size, cudaMemcpyDeviceToHost );
-        cudaMemcpy( &V[0], VD, nSize, cudaMemcpyDeviceToHost );
-        cudaMemcpy( &m[0], mD, bSize, cudaMemcpyDeviceToHost );
-        cudaMemcpy( &I[0], ID, nSize, cudaMemcpyDeviceToHost );
+#if CudaTimeDebug>0
+        cudaEventRecord( eTime, 0 );
+        cudaEventSynchronize( eTime );
+        cudaEventElapsedTime( &cudaTime, bTime, eTime );
+        std::cout << "Neurons: " << nN << std::endl;
+        std::cout << "Connects: " << nN*nN << std::endl;
+        std::cout << "Steps: " << std::ceil(te/dt) << std::endl;
+        std::cout << "solvePCNNI2003KernelG time: " << cudaTime << ", ms\n\n";
+#endif
 
+        cudaMemcpy( &t,      tD,   f1,   cudaMemcpyDeviceToHost );
+        cudaMemcpy( &VN[0],  VND,  fnN,  cudaMemcpyDeviceToHost );
+        cudaMemcpy( &mN[0],  mND,  bnN,  cudaMemcpyDeviceToHost );
+        cudaMemcpy( &IN[0],  IND,  fnN,  cudaMemcpyDeviceToHost );
+
+
+        cudaFree( nND );
+        cudaFree( nED );
         cudaFree( VPD );
-        cudaFree( VRD );
+        //cudaFree( VRD );
+        cudaFree( aND );
+        cudaFree( bND );
+        cudaFree( cND );
+        cudaFree( dND );
         cudaFree( dtD );
-        cudaFree( stD );
-        cudaFree( npD );
-        cudaFree( cpD );
-        cudaFree( VD );
-        cudaFree( mD );
-        cudaFree( ID );
-        cudaFree( wD );
+        cudaFree( teD );
+        cudaFree( VND );
+        cudaFree( UND );
+        cudaFree( mND );
+        cudaFree( IND );
+        cudaFree( wCD );
         cudaFree( tD );
+        //cudaFree( spkD );
+        //cudaFree( oscD );
 
     }
 

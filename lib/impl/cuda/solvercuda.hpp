@@ -17,7 +17,8 @@ namespace NNSimulator {
     public:
 
         //! Реализация модели Е.М. Ижикевича (2003).
-        virtual void solvePCNNI2003E(
+        virtual void solvePCNNI2003E
+        (
             const size_t & nNeurs,
             const size_t & nNeursExc,
             const T & VNeursPeak,
@@ -25,15 +26,18 @@ namespace NNSimulator {
             const std::valarray<T> aNeurs,
             const std::valarray<T> bNeurs,
             const std::valarray<T> cNeurs,
+            const std::valarray<T> dNeurs,
             const T &  dt,
-            const T & st,
+            const T & tEnd,
             std::valarray<T> & VNeurs,
-            std::valarray<T> & UNeurs_,
+            std::valarray<T> & UNeurs,
             std::valarray<bool> & mNeurs,
             std::valarray<T> & INeurs,
             std::valarray<T> & wConns,
-            T & t
-        ) final {};
+            T & t,
+            std::vector<std::pair<size_t,T>> & spikes,
+            std::vector<std::pair<size_t,std::valarray<T>>> & oscillograms
+        ) override final;
 
     };
 }

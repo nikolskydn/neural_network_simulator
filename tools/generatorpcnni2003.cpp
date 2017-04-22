@@ -84,14 +84,6 @@ int main(int argc, char* argv[])
                 d->wConns[i*nNeurs+j] = 0.5*udis(gen);
             else
                 d->wConns[i*nNeurs+j] = -udis(gen);
-/*
-    "a=r_[0.02*ones(Ne),0.02+0.08*ri]\n",
-    "b=r_[0.2*ones(Ne),0.25-0.05*ri]\n",
-    "c=r_[-65+15*re**2,-65*ones(Ni)]\n",
-    "d=r_[8-6*re**2,2*ones(Ni)]\n",
-    "V=VR*ones(Ne+Ni)\n",
-    "U=b*V\n",
-*/
     
     for( size_t i=0 ; i<nNeurs; ++ i ) 
         if( i< nNeursExc)

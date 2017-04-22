@@ -27,7 +27,7 @@ namespace NNSimulator {
         public:
 
             //! \brief Реализация модели Е.М. Ижикевича (2003) методом Эйлера. \details Численная схема приведена в базовом классе SolverImpl.
-            virtual void solvePCNN2003E(
+            virtual void solvePCNNI2003E(
                 const size_t & nNeurs,
                 const size_t & nNeursExc,
                 const T & VNeursPeak,
@@ -43,8 +43,10 @@ namespace NNSimulator {
                 std::valarray<bool> & mNeurs,
                 std::valarray<T> & INeurs,
                 std::valarray<T> & wConns,
-                T & t
-            ) final;
+                T & t,
+                std::vector<std::pair<size_t,T>> & spikes,
+                std::vector<std::pair<size_t,std::valarray<T>>> & oscillograms
+            ) override final;
     };
 }
 

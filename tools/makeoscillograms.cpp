@@ -26,14 +26,14 @@ int main(int argc, char* argv[])
         outFileName = std::regex_replace(
             inFileName, 
             exts, 
-            ".spks"
+            ".oscs"
         );
     }
     else 
     {
         std::cout << "Warning: the extension must be 'sout'.\n";
-        std::cout << "outFileName = 'tmp.spks'.\n";
-        outFileName = "tmp.spks";
+        std::cout << "outFileName = 'tmp.oscs'.\n";
+        outFileName = "tmp.oscs";
     }
 
     SolversBuffer inBuff;
@@ -54,10 +54,11 @@ int main(int argc, char* argv[])
     {
         inBuff >> simNumber;
         inBuff >> dataNumber;
+        outFile << d->t << ' ';
         for(int i=0; i<d->nNeurs; ++i)
         {
-           if( d->mNeurs[i] ) 
-               outFile << d->t << ' ' << i << std::endl;
+               outFile << d->VNeurs[i] << ' ' ;
         }
+        outFile << std::endl;
     }
 }

@@ -28,6 +28,8 @@ namespace NNSimulator {
             using Solver<T>::dNum_;
             using Solver<T>::pImpl_;
             using Solver<T>::pData_;
+            using Solver<T>::spikes_;
+            using Solver<T>::oscillograms_;
 
         protected:
 
@@ -35,7 +37,7 @@ namespace NNSimulator {
             virtual void solveImpl_( const T & cte ) final
             {
                 auto pD = static_cast<DataPCNNI2003<T>*>(pData_.get());
-                pImpl_->solvePCNN2003E
+                pImpl_->solvePCNNI2003E
                 (
                     pD->nNeurs,
                     pD->nNeursExc,
@@ -52,7 +54,9 @@ namespace NNSimulator {
                     pD->mNeurs,
                     pD->INeurs,
                     pD->wConns,
-                    pD->t
+                    pD->t,
+                    spikes_,
+                    oscillograms_
                 );
             }
 
@@ -90,6 +94,8 @@ namespace NNSimulator {
             //! Метод ввода параметров из потока.  
             virtual std::istream& read( std::istream& istr ) final
             {  
+                //istr >> sNum_;
+                //istr >> dNum_;
                 auto pD = static_cast<DataPCNNI2003<T>*>(pData_.get());
                 pD->read(istr);
                 return istr;

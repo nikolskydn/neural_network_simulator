@@ -7,6 +7,7 @@
 #define _NNetworkSimulatorSolverImplNDN2017_
 
 #include <valarray>
+#include <vector>
 #include <memory>
 
 namespace NNSimulator {
@@ -31,7 +32,8 @@ namespace NNSimulator {
              *
              * Izhikevich E.M. Simple model of spiking neurons// IEEE transactions of neural networks. V.14. N6. 2003. PP.1569--1572. (http://www.izhikevich.org/publications/spikes.pdf)
              */
-            virtual void solvePCNN2003E(
+            virtual void solvePCNNI2003E
+            (
                 const size_t & nNeurs,
                 const size_t & nNeursExc,
                 const T & VNeursPeak,
@@ -47,8 +49,10 @@ namespace NNSimulator {
                 std::valarray<bool> & mNeurs,
                 std::valarray<T> & INeurs,
                 std::valarray<T> & wConns,
-                T & t
-            ) = 0;
+                T & t,
+                std::vector<std::pair<size_t,T>> & spikes,
+                std::vector<std::pair<size_t,std::valarray<T>>> & oscillograms
+            ) = 0 ;
     };
 }
 #endif

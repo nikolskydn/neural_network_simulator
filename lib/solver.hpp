@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <valarray>
+#include <vector>
 #include <iomanip>
 #include <type_traits>
 #include "formatstream.hpp"
@@ -37,6 +38,18 @@ namespace NNSimulator {
     //! Базовый класс для численных решателей.
     template<class T> class Solver
     {
+            //! Тип вектора спайков.
+            using vSpikes = std::vector<std::pair<size_t,T>>;
+
+            //! Константный итератор для вектора спайков.
+            using citSpikes = typename vSpikes::const_iterator;
+
+            //! Тип вектора осцилограмм.
+            using vOscillograms = std::vector<std::pair<size_t,std::valarray<T>>>;
+
+            //! Константный итератор для вектора осцилограмм.
+            using citOscillograms = typename vOscillograms::const_iterator;
+
         protected:
 
             //! Номер решателя.
@@ -52,7 +65,13 @@ namespace NNSimulator {
             std::unique_ptr<SolverImpl<T>> pImpl_ {nullptr};
 
             //! Определяет интерфейс метода для вызова решающего метода из установленной реализации.
-            virtual void solveImpl_( const T & cst ) = 0; 
+            virtual void solveImpl_( const T & cst ) = 0;
+
+            //! Вектор для хранения диаграммы спайков
+            vSpikes spikes_;
+
+            //! Вектор для хранения осцилограмм
+            vOscillograms oscillograms_;
 
     public:
 
@@ -116,7 +135,7 @@ namespace NNSimulator {
                 T cte = pData_->t;
                 if( ostr ) ostr << *this << std::endl;
                 cte += pData_->dtDump;
-                while( pData_->t <= pData_->tEnd ) 
+                while( pData_->t < pData_->tEnd ) 
                 {
                     solveImpl_( cte );
                     cte = pData_->t;
@@ -131,6 +150,25 @@ namespace NNSimulator {
             //! Потоковая запись данных.
             virtual std::ostream& write( std::ostream& ostr ) const = 0 ;
 
+            //! Возвращает итераторы на начало и конец вектора спайков.
+            std::pair<citSpikes,citSpikes> getSpikes() const
+            {
+                return std::pair<citSpikes,citSpikes>
+                    (
+                         spikes_.cbegin(),
+                         spikes_.cend()
+                    );
+            }
+
+            //! Возвращает итераторы на начало и конец вектора с осцилограммами.
+            std::pair<citOscillograms,citOscillograms> getOscillograms() const
+            {
+                return std::pair<citOscillograms,citOscillograms>
+                    (
+                         oscillograms_.cbegin(),
+                         oscillograms_.cend()
+                    );
+            }
     };
 
 } // namespace
@@ -147,6 +185,23 @@ template<class T>
 std::istream& operator>>( std::istream & istr, NNSimulator::Solver<T> & item)
 {
     return (item.read(istr));
+}
+
+namespace std{
+
+    template<class T>
+    std::ostream& operator<<( std::ostream & ostr, const std::pair<size_t,T> & p)
+    {
+        return (ostr<<p.first << ' ' << p.second);
+    }
+
+    template<class T>
+    std::ostream& operator<<( std::ostream & ostr, const std::pair<size_t,std::valarray<T>> & p)
+    {
+        ostr << p.first << '\t';
+        for( const auto & e : p.second )
+            ostr << e << ' ';
+    }
 }
 
 #endif
