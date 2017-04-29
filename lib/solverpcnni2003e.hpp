@@ -42,20 +42,18 @@ namespace NNSimulator {
                     pD->nNeurs,
                     pD->nNeursExc,
                     pD->VNeursPeak,
-                    pD->VNeursReset,
                     pD->aNeurs,
                     pD->bNeurs,
                     pD->cNeurs,
                     pD->dNeurs,
+                    pD->wConns,
                     pD->dt,
                     cte,
                     pD->VNeurs,
                     pD->UNeurs,
                     pD->mNeurs,
                     pD->INeurs,
-                    pD->wConns,
                     pD->t,
-                    spikes_,
                     oscillograms_
                 );
             }

@@ -9,7 +9,6 @@
 
 #define DEBUG 0
 
-
 int main(int argc, char* argv[])
 {
 
@@ -82,7 +81,7 @@ int main(int argc, char* argv[])
     (
         citsOscillograms.first,
         citsOscillograms.second,
-        std::ostream_iterator<std::pair<size_t,std::valarray<float>>>( oscsFileStream, "\n" )
+        std::ostream_iterator<std::pair<float,std::valarray<float>>>( oscsFileStream, "\n" )
     );
 
 

@@ -1,4 +1,4 @@
-CXX=g++-4.9
+CXX=g++
 CXXFLAGS=-std=c++14
 SRCS=nnsimulator.cpp ../lib/solver.hpp
 TRG=nnsimulatorcpu

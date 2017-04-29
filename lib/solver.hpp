@@ -9,7 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <valarray>
-#include <vector>
+#include <deque>
 #include <iomanip>
 #include <type_traits>
 #include "formatstream.hpp"
@@ -39,13 +39,13 @@ namespace NNSimulator {
     template<class T> class Solver
     {
             //! Тип вектора спайков.
-            using vSpikes = std::vector<std::pair<size_t,T>>;
+            using vSpikes = std::deque<std::pair<size_t,T>>;
 
             //! Константный итератор для вектора спайков.
             using citSpikes = typename vSpikes::const_iterator;
 
             //! Тип вектора осцилограмм.
-            using vOscillograms = std::vector<std::pair<size_t,std::valarray<T>>>;
+            using vOscillograms = std::deque<std::pair<T,std::valarray<T>>>;
 
             //! Константный итератор для вектора осцилограмм.
             using citOscillograms = typename vOscillograms::const_iterator;
@@ -72,6 +72,18 @@ namespace NNSimulator {
 
             //! Вектор для хранения осцилограмм
             vOscillograms oscillograms_;
+
+            //! Метод создания диаграммы спайков из вектора осцилограмм.
+            void makeSpikes_()
+            {
+                for( const auto & p: oscillograms_ )
+                {
+                    T t = p.first;
+                    for( int i=0; i<pData_->nNeurs; ++i )
+                        if( p.second[i] >= pData_->VNeursPeak )
+                            spikes_.push_back(std::pair<T,size_t>(t,i));
+                }
+            }
 
     public:
 
@@ -142,6 +154,7 @@ namespace NNSimulator {
                     if( ostr ) ostr << *this << std::endl;
                     cte += pData_->dtDump;
                 } 
+                makeSpikes_();
             }
 
             //! Потоковое чтение данных.
@@ -196,7 +209,7 @@ namespace std{
     }
 
     template<class T>
-    std::ostream& operator<<( std::ostream & ostr, const std::pair<size_t,std::valarray<T>> & p)
+    std::ostream& operator<<( std::ostream & ostr, const std::pair<T,std::valarray<T>> & p)
     {
         ostr << p.first << '\t';
         for( const auto & e : p.second )

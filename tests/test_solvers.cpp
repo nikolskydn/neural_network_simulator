@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_SUITE (SolverTest)
 BOOST_AUTO_TEST_CASE (TestSolverPCNNI2003E)
 {
     #if DEBUG 
-        std::cout << "\n\033[32;1m Uncomment line  '#define NN_TEST_SOLVERS' in the setting.h and rebuild libs \033[0m\n"; 
+        std::cout << "\n\033[32;1mFor testing uncomment line  '#define NN_TEST_SOLVERS' in the setting.h and rebuild libs \033[0m\n"; 
     #endif
 
     std::string inFileName = "solverpcnni2003e.in";

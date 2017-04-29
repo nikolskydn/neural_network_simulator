@@ -4,11 +4,8 @@
 #include <cmath>
 #include "../../setting.h"
 
-//#ifdef NN_TEST_SOLVERS
-    #include <iostream>
-//#endif
+#include <iostream>
 
-#define CPUValArrayTimeDebug 1
 
 namespace NNSimulator {
 
@@ -26,26 +23,25 @@ namespace NNSimulator {
             const size_t & nN,
             const size_t & nE,
             const T & VP,
-            const T & VR,
             const std::valarray<T> a,
             const std::valarray<T> b,
             const std::valarray<T> c,
             const std::valarray<T> d,
+            const std::valarray<T> & w,
             const T &  dt,
             const T & te,
             std::valarray<T> & V,
             std::valarray<T> & U,
             std::valarray<bool> & m,
             std::valarray<T> & I,
-            std::valarray<T> & w,
             T & t,
-            std::vector<std::pair<size_t,T>> & sp,
-            std::vector<std::pair<size_t,std::valarray<T>>> & og
+            std::deque<std::pair<T,std::valarray<T>>> & og
         ) 
         {
-#if  CPUValArrayTimeDebug > 0
-            auto bTime = std::chrono::steady_clock::now();
-#endif
+            #ifdef TimeDebug 
+                auto bTime = std::chrono::steady_clock::now();
+                auto sst = t;
+            #endif
 
             T dt_2 = .5*dt;
             T k1 = .04;
@@ -78,20 +74,16 @@ namespace NNSimulator {
                 t += dt;
                 m = V>=VP;
 
-                for( size_t i=0; i<nN; ++i )
-                {
-                    if( m[i] ) sp.push_back(std::pair<T,size_t>(t,i));
-                }
                 og.push_back(std::pair<T,std::valarray<T>>(t,V));
             }
-#if  CPUValArrayTimeDebug > 0
+            #ifdef TimeDebug 
                 auto eTime = std::chrono::steady_clock::now();
                 auto dTime = std::chrono::duration_cast<std::chrono::milliseconds>(eTime-bTime);
                 std::cout << "Neurons: " << nN << std::endl;
                 std::cout << "Connects: " << nN*nN << std::endl;
-                std::cout << "Steps: " << std::ceil(te/dt) << std::endl;
+                std::cout << "Steps: " << std::ceil((te-sst)/dt) << std::endl;
                 std::cout << "solvePCNNI2003E_CPU time " << dTime.count() << ", ms\n";
-#endif
+            #endif
 
         }
 

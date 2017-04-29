@@ -7,7 +7,7 @@
 #define _NNetworkSimulatorSolverImplNDN2017_
 
 #include <valarray>
-#include <vector>
+#include <deque>
 #include <memory>
 
 namespace NNSimulator {
@@ -37,21 +37,19 @@ namespace NNSimulator {
                 const size_t & nNeurs,
                 const size_t & nNeursExc,
                 const T & VNeursPeak,
-                const T & VNeursReset,
                 const std::valarray<T> aNeurs,
                 const std::valarray<T> bNeurs,
                 const std::valarray<T> cNeurs,
                 const std::valarray<T> dNeurs,
+                const std::valarray<T> & wConns,
                 const T &  dt,
                 const T & st,
                 std::valarray<T> & VNeurs,
                 std::valarray<T> & UNeurs_,
                 std::valarray<bool> & mNeurs,
                 std::valarray<T> & INeurs,
-                std::valarray<T> & wConns,
                 T & t,
-                std::vector<std::pair<size_t,T>> & spikes,
-                std::vector<std::pair<size_t,std::valarray<T>>> & oscillograms
+                std::deque<std::pair<T,std::valarray<T>>> & oscillograms
             ) = 0 ;
     };
 }
