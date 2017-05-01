@@ -13,3 +13,6 @@ Implementations for graphics processors are made using Cuda technology.
 
 ![Alt text](https://raw.githubusercontent.com/nikolskydn/neural_network_simulator/master/doc/img/schemesolver.png "Diagram")
 
+The Date class and its heirs contain the network settings.
+
+![Alt text](https://github.com/nikolskydn/neural_network_simulator/blob/master/doc/img/schemedata.png)
