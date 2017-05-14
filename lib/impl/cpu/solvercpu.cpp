@@ -2,6 +2,7 @@
 #include <memory>
 #include <chrono>
 #include <cmath>
+#include <omp.h>
 #include "../../setting.h"
 
 #include <iostream>
@@ -15,7 +16,9 @@ namespace NNSimulator {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::normal_distribution<> dis;
-        for(auto & e: v) e = dis(gen);
+        #pragma omp parallel for
+        for( size_t i=0; i<v.size(); ++i ) 
+            v[i] = dis(gen);
     }
 
         //! Реализация модели Е.М. Ижикевича (2003).
@@ -50,18 +53,27 @@ namespace NNSimulator {
             T i1 = 5.;
             T i2 = 2.;
             std::valarray<T> rV(nN);
+
+            size_t p, i;
+            #pragma omp parallel 
+            p = omp_get_num_threads();
+            size_t np = nN / p; // nN == np * p
+
             while( t < te ) 
             {
                 #ifndef NN_TEST_SOLVERS
                     makeRandn(rV);
                     I[std::slice(0,nE,1)] = i1;
                     I[std::slice(nE,nN-nE,1)] = i2;
-                    I *= rV;
+                    #pragma omp parallel for
+                    for( i=0; i<p; ++i)
+                        I[std::slice(i*np,np,1)] *= rV[std::slice(i*np,np,1)];
                 #else
                     std::cout << "\033[31;1m--- warning: test mode\033[0m\n";
                 #endif
                 V[m] = c[m];
                 U[m] += d[m];
+                #pragma omp parallel for
                 for( size_t i=0; i<nN; ++i)
                 {
                     std::valarray<T> row = w[std::slice(i*nN,nN,1)];

@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=--std=c++14
+CXXFLAGS=--std=c++14 -fopenmp
 SRCS=$(wildcard *.cpp)
 DLIBS=$(SRCS:%.cpp=libnn%.so)
 
