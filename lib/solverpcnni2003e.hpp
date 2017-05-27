@@ -86,7 +86,7 @@ namespace NNSimulator {
                 oFStr << sNum_;
                 oFStr << dNum_;
                 ostr << *pD;
-                return oFStr;
+                return ostr;
             }
 
             //! Метод ввода параметров из потока.  

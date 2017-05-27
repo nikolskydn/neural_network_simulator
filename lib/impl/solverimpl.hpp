@@ -37,10 +37,10 @@ namespace NNSimulator {
                 const size_t & nNeurs,
                 const size_t & nNeursExc,
                 const T & VNeursPeak,
-                const std::valarray<T> aNeurs,
-                const std::valarray<T> bNeurs,
-                const std::valarray<T> cNeurs,
-                const std::valarray<T> dNeurs,
+                const std::valarray<T> & aNeurs,
+                const std::valarray<T> & bNeurs,
+                const std::valarray<T> & cNeurs,
+                const std::valarray<T> & dNeurs,
                 const std::valarray<T> & wConns,
                 const T &  dt,
                 const T & st,
@@ -51,6 +51,10 @@ namespace NNSimulator {
                 T & t,
                 std::deque<std::pair<T,std::valarray<T>>> & oscillograms
             ) = 0 ;
+ 
+            //! Деструктор.
+            virtual ~SolverImpl() {}
+
     };
 }
 #endif

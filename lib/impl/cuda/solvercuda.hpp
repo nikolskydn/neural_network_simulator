@@ -37,6 +37,9 @@ namespace NNSimulator {
             std::deque<std::pair<T,std::valarray<T>>> & oscillograms
         ) override final;
 
+        //! Деструктор.
+        virtual ~SolverImpl() {}
+
     };
 }
 

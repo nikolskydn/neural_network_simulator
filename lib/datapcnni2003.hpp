@@ -70,10 +70,10 @@ namespace NNSimulator {
             DataPCNNI2003& operator=( const DataPCNNI2003& ) = delete;
 
             //! Перемещающий конструктор.
-            DataPCNNI2003( const DataPCNNI2003&& ) = delete;
+            DataPCNNI2003( DataPCNNI2003&& ) = delete;
 
             //! Перемещающий оператор присваивания.
-            DataPCNNI2003& operator=( const DataPCNNI2003&& ) = delete;
+            DataPCNNI2003& operator=( DataPCNNI2003&& ) = delete;
 
 
             //! Метод вывода параметров в поток. 
@@ -86,7 +86,7 @@ namespace NNSimulator {
                 for( const auto & e: bNeurs ) oFStr << e ;  
                 for( const auto & e: cNeurs ) oFStr << e ;  
                 for( const auto & e: dNeurs ) oFStr << e ;  
-                return oFStr;
+                return ostr;
             }
 
             //! Метод ввода параметров из потока.  
