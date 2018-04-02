@@ -1,6 +1,6 @@
 CXX=g++
 CXXFLAGS=-std=c++14 -I /common/software/boost/include/
-LIBS=-lpthread -L ${LIBSDIR} -lsqlactions -lnnsolvercudatest -L/usr/local/cuda/lib64 -lcudart -L /usr/lib/postgresql/9.5/lib -lpq
+LIBS=-L ${LIBSDIR} -lnnsolvercudatest -L/usr/local/cuda/lib64 -lcudart
 SRCS=$(wildcard *.cpp)
 TRGS=$(SRCS:%.cpp=%_cuda)
 DPNDS=$(wildcard ../lib/solver*.hpp)

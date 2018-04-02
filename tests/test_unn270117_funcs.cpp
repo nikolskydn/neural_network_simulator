@@ -271,13 +271,13 @@ BOOST_AUTO_TEST_CASE (TestSolverPCNNI2003E)
 
     // USING INFORMATION FROM FILE
     FromFileUNN270117 FF;
-    std::string infile = "/common/atlas3d/test/solverUNN270117RK.in";
+    std::string infile = "./solverUNN270117RK.in";
     FF.readFromFile(infile);
 
     // TESTS
     float outValFF;
     float outVal;
-    std::string outDataFile = "/common/atlas3d/test/solverUNN270117RK.end";
+    std::string outDataFile = "./solverUNN270117RK.end";
     SolversBuffer fin;
     fin.readFile(outDataFile);
 

@@ -1,6 +1,6 @@
 CXX=g++
 CXXFLAGS=-std=c++14 -fopenmp -I /common/software/boost/include/
-LIBS=-lpthread -L ${LIBSDIR} -lsqlactions -lnnsolvercputest -L /usr/lib/postgresql/9.5/lib -lpq
+LIBS=-L ${LIBSDIR} -lnnsolvercputest
 SRCS=$(wildcard *.cpp)
 TRGS=$(SRCS:%.cpp=%_cpu)
 DPNDS=$(wildcard ../lib/solver*.hpp)

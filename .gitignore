@@ -21,3 +21,7 @@ tests/test_base_neurs_cpu
 \.project
 
 doc/ru/
+
+compile/
+
+tests/test_UNN270117solver_cpu

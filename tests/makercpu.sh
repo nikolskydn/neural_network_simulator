@@ -39,3 +39,6 @@ make -f MakefileCPU clean
 make -f MakefileCPU
 MV test_nnsolvers_cpu ${BINDIR}
 MV test_unn270117_funcs_cpu ${BINDIR}
+
+MV solverUNN270117RK.in ${BINDIR}
+MV solverUNN270117RK.end ${BINDIR}
