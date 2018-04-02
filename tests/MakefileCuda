@@ -1,11 +1,19 @@
-CXX=g++-4.9
-CXXFLAGS=-std=c++14
+CXX=g++
+CXXFLAGS=-std=c++14 -I /common/software/boost/include/
+LIBS=-lpthread -L ${LIBSDIR} -lsqlactions -lnnsolvercudatest -L/usr/local/cuda/lib64 -lcudart -L /usr/lib/postgresql/9.5/lib -lpq
 SRCS=$(wildcard *.cpp)
 TRGS=$(SRCS:%.cpp=%_cuda)
+DPNDS=$(wildcard ../lib/solver*.hpp)
 
-$(TRGS): %_cuda: %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cuda -lnnsolvercuda -L/usr/local/cuda/lib64 -lcudart
+all: test_nnsolvers_cuda
+
+ifeq ($(HOSTNAME),master.nngu)
+$(TRGS): %_cuda: %.cpp  $(DPNDS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ ${LIBS}  -I /common/software/boost/include 
+else
+$(TRGS): %_cuda: %.cpp  $(DPNDS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ ${LIBS}
+endif
 
 clean:
 	rm -f $(TRGS)
-

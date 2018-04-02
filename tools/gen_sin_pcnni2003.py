@@ -10,13 +10,20 @@ t=0
 te=1000
 dt=1
 dtDump=500
-re=random.rand(Ne)
-ri=random.rand(Ni)
+re=random.rand(Ne).astype('f2')
+ri=random.rand(Ni).astype('f2')
+#re=ndarray(Ne, dtype=float16)
+#for i in xrange(Ne):
+#    re[i] = random.rand()
+#ri=ndarray(Ni, dtype=float16)
+#for i in xrange(Ni):
+#    ri[i] = random.rand()
 a=r_[0.02*ones(Ne),0.02+0.08*ri]
 b=r_[0.2*ones(Ne),0.25-0.05*ri]
 c=r_[-65+15*re**2,-65*ones(Ni)]
 d=r_[8-6*re**2,2*ones(Ni)]
-w=c_[0.5*random.rand(N,Ne), -random.rand(N,Ni)]
+w=c_[0.5*random.rand(N,Ne).astype('f2'), -random.rand(N,Ni).astype('f2')]
+#w=ndarray((N,N),dtype=float16)
 VR=-65
 V=VR*ones(N)
 U=b*V

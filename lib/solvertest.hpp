@@ -1,4 +1,4 @@
-/** @addtogroup TestSolvers
+/** @addtogroup TestSolver
  * @{*/
 
 /** @file */
@@ -17,7 +17,7 @@ namespace NNSimulator {
 
     template<class T> class Solver;
 
-    //! Класc для тестирования работоспособности проекта.
+    //! \~russian \brief Класc для тестирования работоспособности проекта. \details Сделан, чтобы можно было вручную проверить числа, которые выдает программа.
     template<class T> class SolverForTest: public Solver<T>
     {
 
@@ -35,13 +35,17 @@ namespace NNSimulator {
 
         protected:
 
-            //! Некоторый специальный параметр нейронов.
+            //! \~russian \brief Некоторый специальный параметр нейронов.
             T neursParamSpec_;
 
-            //! Некоторый специальный параметр синапсов.
+            //! \~russian \brief Некоторый специальный параметр синапсов.
             T connsParamSpec_;
 
-            //! Выполнить решение \details Выполняется вызов установленной реализации.
+            /*! \~russian
+             * \brief Выполнить решение.
+             * \details Выполняется вызов установленной реализации.
+             * \param cte текущее модельное время.
+             */
             virtual void solveImpl( const T & cte ) final
             {
                 pImpl_->solveTest
@@ -63,25 +67,30 @@ namespace NNSimulator {
 
         public:
 
-            //! Конструктор.
+            //! \~russian \brief Конструктор.
             explicit SolverForTest() :  Solver<T>()  {}
 
-            //! Деструктор.
+            //! \~russian \brief Деструктор по умолчанию.
             virtual ~SolverForTest() = default;
 
-            //! Копирующий конструктор.
+            //! \~russian \brief Удаленный копирующий конструктор.
             SolverForTest( const SolverForTest& ) = delete;
 
-            //! Оператор присваивания.
+            //! \~russian \brief Удаленный оператор присваивания.
             SolverForTest& operator=( const SolverForTest& ) = delete;
 
-            //! Перемещающий конструктор.
+            //! \~russian \brief Удаленный перемещающий конструктор.
             SolverForTest( const SolverForTest&& ) = delete;
 
-            //! Перемещающий оператор присваивания.
+            //! \~russian \brief Удаленный перемещающий оператор присваивания.
             SolverForTest& operator=( const SolverForTest&& ) = delete;
 
-            //! Метод вывода параметров в поток. 
+            /*! \~russian
+             * \brief Метод вывода параметров в поток.
+             * \details Выводит специальные параметры нейронов и связей.
+             * \param ostr ссылка на поток вывода, куда печатаются данные симулятора.
+             * \return ссылку на поток вывода, куда были напечатанны данные симулятора.
+             */
             virtual std::ostream& write( std::ostream& ostr ) const final
             {
                 FormatStream oFStr( Solver<T>::write( ostr ) );
@@ -90,7 +99,12 @@ namespace NNSimulator {
                 return oFStr;
             }
 
-            //! Метод ввода параметров из потока.  
+            /*! \~russian
+             * \brief Метод ввода параметров из потока.
+             * \details Заполняет специальные параметры нейронов и связей.
+             * \param istr ссылка на поток ввода, откуда берутся данные.
+             * \return ссылку на поток ввода, откуда были взяты данные.
+             */
             virtual std::istream& read( std::istream& istr ) final
             {
                 return ( Solver<T>::read(istr) >> neursParamSpec_ >> connsParamSpec_ );

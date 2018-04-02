@@ -8,29 +8,42 @@
 
 #include <iomanip>
 
-//! Класс для форматировия вывода в поток. \details Позволяет настроить ширину поля. Выводит завершающий пробел.
+/*! \~russian \brief Класс для форматировия вывода в поток.
+ * \details Позволяет настроить ширину поля. Выводит завершающий пробел.
+ * Благодаря перегруженному оператору вывода и
+ * преобразованию в std::ostream& позволяет использовать
+ * объект данного класса как обычный поток вывода.
+ */
 class FormatStream { // FormatOStream
 
-    //! Ширина поля.
+    //! \~russian \brief Ширина поля.
     size_t width_;
 
-    //! Поток.
+    //! \~russian \brief Ссылка на поток, куда происходит вывод.
     std::ostream & ostr_;
 
 public:
 
-    //! Конструктор.
+    /*! \~russian
+     * \brief Конструктор.
+     * \param ostr ссылка на поток, куда происходит вывод.
+     * \param width ширина поля.
+     */
     explicit FormatStream( std::ostream & ostr, size_t width = 5 ) :
         ostr_(ostr), width_(width) {}
        
-    //! Оператор вывода.
+    /*! \~russian
+     * \brief Оператор вывода.
+     * \param t элемент, который будет выведен в поток.
+     * \return ссылку на текущий объект.
+     */
     template<class T> FormatStream& operator<< ( const T& t)
     {
         ostr_ << std::setw(width_) << t << ' ';
         return *this;
     }
 
-    //! Преобразование к потоковому типу.
+    //! \~russian \brief Преобразование к потоковому типу.
     operator std::ostream&() { return ostr_; }
 };
 

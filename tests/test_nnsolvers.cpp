@@ -10,7 +10,7 @@
 #include "../lib/formatstream.hpp"
 #include "../lib/solversbuffer.hpp"
 
-#define DEBUG 1
+#define DEBUG 0
 
 BOOST_AUTO_TEST_SUITE (SolverTest) 
 
@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_SUITE (SolverTest)
 BOOST_AUTO_TEST_CASE (TestSolverPCNNI2003E)
 {
     #if DEBUG 
-        std::cout << "\n\033[32;1mFor testing uncomment line  '#define NN_TEST_SOLVERS' in the setting.h and rebuild libs \033[0m\n"; 
+        std::cout << "\n\033[32;1mFor testing uncomment line  '#define NN_TEST_SOLVERS' in the setting.h and rebuild libs \033[0m\n";
     #endif
 
     std::string inFileName = "solverpcnni2003e.in";
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE (TestSolverPCNNI2003E)
 
     #if DEBUG 
         std::cout << "\n\033[33;1m * * * SolverPCNN * * *\n\n\033[0m";
-        std::cout << "\033[36m" <<  inBuff.str() << "\033[0m" << std::endl;
+        std::cout << "In data:\n\033[36m" <<  inBuff.str() << "\033[0m" << std::endl;
     #endif
 
     size_t outNumberSolver;
@@ -43,13 +43,18 @@ BOOST_AUTO_TEST_CASE (TestSolverPCNNI2003E)
     s->write( outBuff );
 
     #if DEBUG 
-        std::cout << "\033[34m";
+        std::cout << "End data:\n\033[34m";
         std::cout << outBuff.str() << "\033[0m" << std::endl;
     #endif
 
     std::string pyOutFileName = "solverpcnni2003e.end";
     SolversBuffer pyOutBuff;
     pyOutBuff.readFile(pyOutFileName);
+
+    #if DEBUG 
+        std::cout << "End data from the testing program (Python):\n\033[34m";
+        std::cout << pyOutBuff.str() << "\033[0m" << std::endl;
+    #endif
 
     float outSolverBuffVal, outPyBuffVal;
     while( !pyOutBuff.eof() )

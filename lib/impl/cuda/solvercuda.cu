@@ -28,37 +28,40 @@ namespace NNSimulator {
         float *osc 
     ) 
     {
-        size_t i = threadIdx.x + blockIdx.x * blockDim.x;
-        curandState state;
-        curand_init(i, 0, 0, &state);
-        float ct = *t;
-        int cn = 0; 
-        while( ct< (*te) )
+        int i = blockIdx.x*blockDim.x + threadIdx.x;
+        if( i<*nN )
         {
-            if( m[i] ) 
+            curandState state;
+            curand_init(i, 0, 0, &state);
+            float ct = *t;
+            int cn = 0; 
+            while( ct< (*te) )
             {
-                V[i] = c[i];
-                U[i] += d[i];
+                if( m[i] ) 
+                {
+                    V[i] = c[i];
+                    U[i] += d[i];
+                }
+                #ifndef NN_TEST_SOLVERS
+                    if( i<(*nE) ) 
+                        I[i] = 5.*curand_normal(&state); 
+                    else 
+                        I[i] = 2.*curand_normal(&state);
+                #endif
+                for( size_t j=0; j<(*nN); ++j ) if( m[j] ) I[i] += w[i*(*nN)+j];
+                V[i] += .5*(*dt)*( .04*V[i]*V[i] + 5.*V[i] + 140. - U[i] + I[i] );
+                V[i] += .5*(*dt)*( .04*V[i]*V[i] + 5.*V[i] + 140. - U[i] + I[i] );
+                U[i] += (*dt)*a[i]*( b[i]*V[i] - U[i] );
+                m[i] = V[i] > (*VP);
+                ct += *dt;
+
+                if( i==0  ) osc[ cn*(*nN+1) ] = ct;
+                osc[ cn*(*nN+1)+i+1 ] = V[i] ;
+                ++cn;
+
             }
-            #ifndef NN_TEST_SOLVERS
-                if( i<(*nE) ) 
-                    I[i] = 5.*curand_normal(&state); 
-                else 
-                    I[i] = 2.*curand_normal(&state);
-            #endif
-            for( size_t j=0; j<(*nN); ++j ) if( m[j] ) I[i] += w[i*(*nN)+j];
-            V[i] += .5*(*dt)*( .04*V[i]*V[i] + 5.*V[i] + 140. - U[i] + I[i] );
-            V[i] += .5*(*dt)*( .04*V[i]*V[i] + 5.*V[i] + 140. - U[i] + I[i] );
-            U[i] += (*dt)*a[i]*( b[i]*V[i] - U[i] );
-            m[i] = V[i] > (*VP);
-            ct += *dt;
-
-            if( i==0  ) osc[ cn*(*nN+1) ] = ct;
-            osc[ cn*(*nN+1)+i+1 ] = V[i] ;
-            ++cn;
-
-        }
-        if( i==0 ) *t = ct;
+            if( i==0 ) *t = ct;
+        } // if i<nN
     }
 
     //! Полная специализация метода solvePCNNI2003E для float.
@@ -68,10 +71,10 @@ namespace NNSimulator {
         const size_t & nN,
         const size_t & nE,
         const float & VP,
-        const std::valarray<float> aN,
-        const std::valarray<float> bN,
-        const std::valarray<float> cN,
-        const std::valarray<float> dN,
+        const std::valarray<float> & aN,
+        const std::valarray<float> & bN,
+        const std::valarray<float> & cN,
+        const std::valarray<float> & dN,
         const std::valarray<float> & wC,
         const float &  dt,
         const float & te,
@@ -83,7 +86,10 @@ namespace NNSimulator {
         std::deque<std::pair<float,std::valarray<float>>> & og
     ) 
     {
-
+        #ifdef NN_TEST_SOLVERS 
+            std::cout << "\033[31;1m    warning: test mode; cuda impl\033[0m\n"; 
+        #endif
+    
         size_t fnN = nN*sizeof(float);
         size_t nC = nN*nN;
         size_t fnC = nC*sizeof(float);
@@ -134,7 +140,8 @@ namespace NNSimulator {
             cudaEventCreate( &eTime );
             cudaEventRecord( bTime, 0 );
         #endif
-        solvePCNNI2003KernelG<<< 1, nN >>>
+        size_t numBlocks = nN / 512 + 1;
+        solvePCNNI2003KernelG<<< numBlocks, 512, 0 >>>
         ( 
             nND, nED, VPD, aND, bND, cND, dND, wCD,  dtD, teD, 
             VND, UND, mND, IND, tD, oscD
@@ -144,10 +151,10 @@ namespace NNSimulator {
             cudaEventRecord( eTime, 0 );
             cudaEventSynchronize( eTime );
             cudaEventElapsedTime( &cudaTime, bTime, eTime );
-            std::cout << "Neurons: " << nN << std::endl;
-            std::cout << "Connects: " << nN*nN << std::endl;
-            std::cout << "Steps: " << nSteps << std::endl;
-            std::cout << "solvePCNNI2003KernelG time: " << cudaTime << ", ms\n\n";
+            std::cout << "Neurons: \033[31;1m" << nN << "\033[0m\t";
+            std::cout << "Connects: \033[31;1m" << nN*nN << "\033[0m\t";
+            std::cout << "Steps: \033[31;1m" << nSteps << "\033[0m\t";
+            std::cout << "solvePCNNI2003KernelG time: \033[31;1m" << cudaTime << "\033[0m, ms\n";
         #endif
 
         cudaMemcpy( &t,      tD,   f1,   cudaMemcpyDeviceToHost );
@@ -183,6 +190,88 @@ namespace NNSimulator {
         cudaFree( oscD );
 
     }
+
+    //! Полная специализация решателя solveUNN270117
+    template<> 
+	void SolverImplCuda<float>::solveUNN270117(
+            	const size_t& nNeurs,
+				const size_t& nNeursExc,
+				const size_t& Nastr,
+				const float& VNeursPeak,
+				const float& VNeursReset,
+				const float& dt,
+				const float& st,
+				float& t,
+
+				const float& Cm,
+				const float& g_Na,
+				const float& g_K,
+				const float& g_leak,
+				const float& Iapp,
+				const float& E_Na,
+				const float& E_K,
+				const float& E_L,
+				const float& Esyn,
+				const float& theta_syn,
+				const float& k_syn,
+
+				const float& alphaGlu,
+				const float& alphaG,
+				const float& bettaG,
+
+				const float& tauIP3,
+				const float& IP3ast,
+				const float& a2,
+				const float& d1,
+				const float& d2,
+				const float& d3,
+				const float& d5,
+
+				const float& dCa,
+				const float& dIP3,
+				const float& c0,
+				const float& c1,
+				const float& v1,
+				const float& v4,
+				const float& alpha,
+				const float& k4,
+				const float& v2,
+				const float& v3,
+				const float& k3,
+				const float& v5,
+				const float& v6,
+				const float& k2,
+				const float& k1,
+
+				const float& IstimAmplitude,
+				const float& IstimFrequency,
+				const float& IstimDuration,
+				std::valarray<float>& nextTimeEvent,
+				std::valarray<float>& Istim,
+
+				const std::valarray<float>& wConns,
+				const std::valarray<float>& wAstrNeurs,
+				const std::valarray<bool>& astrConns,
+
+				std::valarray<float>& VNeurs,
+				std::valarray<bool>& mNeurs,
+				std::valarray<float>& INeurs,
+				std::valarray<float>& m,
+				std::valarray<float>& h,
+				std::valarray<float>& n,
+				std::valarray<float>& G,
+
+				std::valarray<float>& Ca,
+				std::valarray<float>& IP3,
+				std::valarray<float>& z,
+
+				std::deque<std::pair<float,std::valarray<float>>>& oscillograms
+            ) 
+			{
+				std::cerr<<"ERROR in SolverImplCuda<float>::solveUNN270117(...)"<<std::endl;
+				std::cerr<<"\tThere is no CUDA implementation for model UNN270117"<<std::endl<<std::endl;
+				throw;
+			}
 
 }
 

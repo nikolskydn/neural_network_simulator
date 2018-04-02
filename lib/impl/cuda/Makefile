@@ -1,15 +1,13 @@
 NVCC=nvcc
-CPPFLAGS=--std=c++11
+CPPFLAGS=--std=c++11 --gpu-architecture=compute_30
 SRCS=$(wildcard *cu)
 DLIB=$(SRCS:%.cu=libnn%.so)
-#SLIB=$(SRCS:%.cu=lib%.a)
+DTESTLIB=$(SRCS:%.cu=libnn%test.so)
 
 $(DLIB): libnn%.so: %.cu %.hpp
 	$(NVCC) $(CPPFLAGS) --shared  -o $@ $< --compiler-options '-fPIC' 
 
-#$(SLIB): lib%.a: %.cu %.hpp
-#	$(NVCC) $(CPPFLAGS) --lib --output-file $@ $<
-
+$(DTESTLIB): libnn%test.so: %.cu %.hpp
+	$(NVCC) $(CPPFLAGS) --shared  -o $@ $< --compiler-options '-fPIC' 
 clean: 
 	rm -f *.so
-#	rm -f *.a

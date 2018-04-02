@@ -1,0 +1,1307 @@
+namespace NNSimulator {
+
+    namespace NARK45 {
+    
+    	namespace{
+    		const float mev = 1e-5;
+    	}
+
+        namespace RD{
+            template<typename T> inline void createPuassonEvent(
+	            T& nextTimeEvent_in,
+        	    std::mt19937& mtDev_in,
+        	    std::uniform_real_distribution<T>& oneDist_in,
+	            const T timeNow_in,
+            	const T frequency_in,
+	            const T duration_in
+            )
+            {
+    	        if ( timeNow_in >= (nextTimeEvent_in + duration_in) )
+                {
+	    	       T tau = -1.0/frequency_in * log(oneDist_in(mtDev_in));
+    	    	    nextTimeEvent_in += tau;
+	            }
+            }
+        }
+    	/*! \brief Структура со вспомогательными переменными для модели UNN270117.
+    	 *
+    	 * Структура со вспомогательными переменными для модели UNN270117.
+    	 *
+    	 * Включает в себя параметры Рунге-Кутты, некоторые устройства для
+    	 * случайного распределения, вспомогательные массивы для запоминания
+    	 * значения переменных с текущего шага по времени.
+    	 *
+    	 */
+    	template<typename T>
+    	struct AuxilaryVariablesUNN270117{
+    		//! Функция выделяет память под массивы данного класса.
+    		void allocateMemoryForAuxiliaryVariables(const size_t& nNeurs, const size_t& Nastr){
+    			// for Runge-Kutta parameters
+    			pCa_1.resize( Nastr );
+    			pCa_2.resize( Nastr );
+    			pCa_3.resize( Nastr );
+    			pCa_4.resize( Nastr );
+    
+    			pIP3_1.resize( Nastr );
+    			pIP3_2.resize( Nastr );
+    			pIP3_3.resize( Nastr );
+    			pIP3_4.resize( Nastr );
+    
+    			pz_1.resize( Nastr );
+    			pz_2.resize( Nastr );
+    			pz_3.resize( Nastr );
+    			pz_4.resize( Nastr );
+    
+    			pG_1.resize( nNeurs );
+    			pG_2.resize( nNeurs );
+    			pG_3.resize( nNeurs );
+    			pG_4.resize( nNeurs );
+    
+    			pm_1.resize( nNeurs );
+    			pm_2.resize( nNeurs );
+    			pm_3.resize( nNeurs );
+    			pm_4.resize( nNeurs );
+    
+    			ph_1.resize( nNeurs );
+    			ph_2.resize( nNeurs );
+    			ph_3.resize( nNeurs );
+    			ph_4.resize( nNeurs );
+    
+    			pn_1.resize( nNeurs );
+    			pn_2.resize( nNeurs );
+    			pn_3.resize( nNeurs );
+    			pn_4.resize( nNeurs );
+    
+    			pV_1.resize( nNeurs );
+    			pV_2.resize( nNeurs );
+    			pV_3.resize( nNeurs );
+    			pV_4.resize( nNeurs );
+    
+    			auxCa.resize( Nastr );
+    			auxIP3.resize( Nastr );
+    			auxG.resize( nNeurs );
+    			auxVmbr.resize( nNeurs );
+    		}
+    
+    		//! Устройство для генерации случайных чисел по алгоритму вихря Мерсена. Является вспомогательным параметром.
+    		std::mt19937 mtDev {std::random_device()()};
+    		//! Распределение чисел от 0 до 1. Является вспомогательным параметром.
+    		std::uniform_real_distribution<T> oneDist {mev, 1.0};
+    		//! Распределение чисел от -IstimAmplitude до IstimAmplitude .
+    		std::uniform_real_distribution<T> Idistribution {0.0, 0.0}; // {-IstimAmplitude, IstimAmplitude}
+    
+    
+    		//! Первый параметр Рунге-Кутты для концентрации свободного цитозолического кальция (free cytosolic calcium concentration) на астроците.
+    		std::valarray<T> pCa_1;				// [Nastr]
+    		//! Второй параметр Рунге-Кутты для концентрации свободного цитозолического кальция (free cytosolic calcium concentration) на астроците.
+    		std::valarray<T> pCa_2;				// [Nastr]
+    		//! Третий параметр Рунге-Кутты для концентрации свободного цитозолического кальция (free cytosolic calcium concentration) на астроците.
+    		std::valarray<T> pCa_3;				// [Nastr]
+    		//! Четвертый параметр Рунге-Кутты для концентрации свободного цитозолического кальция (free cytosolic calcium concentration) на астроците.
+    		std::valarray<T> pCa_4;				// [Nastr]
+    
+    		//! Первый параметр Рунге-Кутты для концентрации иноситол 1,4,5-трифосфата (inositol 1,4,5-triphosphate concentration) на астроците.
+    		std::valarray<T> pIP3_1;			// [Nastr]
+    		//! Второй параметр Рунге-Кутты для концентрации иноситол 1,4,5-трифосфата (inositol 1,4,5-triphosphate concentration) на астроците.
+    		std::valarray<T> pIP3_2;			// [Nastr]
+    		//! Третий параметр Рунге-Кутты для концентрации иноситол 1,4,5-трифосфата (inositol 1,4,5-triphosphate concentration) на астроците.
+    		std::valarray<T> pIP3_3;			// [Nastr]
+    		//! Четвертый параметр Рунге-Кутты для концентрации иноситол 1,4,5-трифосфата (inositol 1,4,5-triphosphate concentration) на астроците.
+    		std::valarray<T> pIP3_4;			// [Nastr]
+    
+    		//! Первый параметр Рунге-Кутты для доли каналов на мембране эндоплазматического ретикулума, находящихся в открытом состоянии (denotes the fraction of IP3 receptors in endoplasmic reticulum (ER) that have not been inactivated by Ca2+ ).
+    		std::valarray<T> pz_1;				// [Nastr]
+    		//! Второй параметр Рунге-Кутты для доли каналов на мембране эндоплазматического ретикулума, находящихся в открытом состоянии (denotes the fraction of IP3 receptors in endoplasmic reticulum (ER) that have not been inactivated by Ca2+ ).
+    		std::valarray<T> pz_2;				// [Nastr]
+    		//! Третий параметр Рунге-Кутты для доли каналов на мембране эндоплазматического ретикулума, находящихся в открытом состоянии (denotes the fraction of IP3 receptors in endoplasmic reticulum (ER) that have not been inactivated by Ca2+ ).
+    		std::valarray<T> pz_3;				// [Nastr]
+    		//! Четвертый параметр Рунге-Кутты для доли каналов на мембране эндоплазматического ретикулума, находящихся в открытом состоянии (denotes the fraction of IP3 receptors in endoplasmic reticulum (ER) that have not been inactivated by Ca2+ ).
+    		std::valarray<T> pz_4;				// [Nastr]
+    
+    		//! Первый параметр Рунге-Кутты для внеклеточной концентрации нейропередатчика в окрестности нейрона.
+    		std::valarray<T> pG_1;				// [Nneurs]
+    		//! Второй параметр Рунге-Кутты для внеклеточной концентрации нейропередатчика в окрестности нейрона.
+    		std::valarray<T> pG_2;				// [Nneurs]
+    		//! Третий параметр Рунге-Кутты для внеклеточной концентрации нейропередатчика в окрестности нейрона.
+    		std::valarray<T> pG_3;				// [Nneurs]
+    		//! Четвертый параметр Рунге-Кутты для внеклеточной концентрации нейропередатчика в окрестности нейрона.
+    		std::valarray<T> pG_4;				// [Nneurs]
+    
+    		//! Первый параметр Рунге-Кутты для активационной натриевой переменной.
+    		std::valarray<T> pm_1;				// [Nneurs]
+    		//! Второй параметр Рунге-Кутты для активационной натриевой переменной.
+    		std::valarray<T> pm_2;				// [Nneurs]
+    		//! Третий параметр Рунге-Кутты для активационной натриевой переменной.
+    		std::valarray<T> pm_3;				// [Nneurs]
+    		//! Четвертый параметр Рунге-Кутты для активационной натриевой переменной.
+    		std::valarray<T> pm_4;				// [Nneurs]
+    
+    		//! Первый параметр Рунге-Кутты для инактивационной натриевой переменной.
+    		std::valarray<T> ph_1;				// [Nneurs]
+    		//! Второй параметр Рунге-Кутты для инактивационной натриевой переменной.
+    		std::valarray<T> ph_2;				// [Nneurs]
+    		//! Третий параметр Рунге-Кутты для инактивационной натриевой переменной.
+    		std::valarray<T> ph_3;				// [Nneurs]
+    		//! Четвертый параметр Рунге-Кутты для инактивационной натриевой переменной.
+    		std::valarray<T> ph_4;				// [Nneurs]
+    
+    		//! Первый параметр Рунге-Кутты для активационной калиевой переменной.
+    		std::valarray<T> pn_1;				// [Nneurs]
+    		//! Второй параметр Рунге-Кутты для активационной калиевой переменной.
+    		std::valarray<T> pn_2;				// [Nneurs]
+    		//! Третий параметр Рунге-Кутты для активационной калиевой переменной.
+    		std::valarray<T> pn_3;				// [Nneurs]
+    		//! Четвертый параметр Рунге-Кутты для активационной калиевой переменной.
+    		std::valarray<T> pn_4;				// [Nneurs]
+    
+    		//! Первый параметр Рунге-Кутты для мембранного потенциала на нейроне.
+    		std::valarray<T> pV_1;				// [Nneurs]
+    		//! Второй параметр Рунге-Кутты для мембранного потенциала на нейроне.
+    		std::valarray<T> pV_2;				// [Nneurs]
+    		//! Третий параметр Рунге-Кутты для мембранного потенциала на нейроне.
+    		std::valarray<T> pV_3;				// [Nneurs]
+    		//! Четвертый параметр Рунге-Кутты для мембранного потенциала на нейроне.
+    		std::valarray<T> pV_4;				// [Nneurs]
+    
+    		// ------------------ вспомогательные переменные некоторых переменных
+    
+    		//! Вспомогательный массив, куда записываются значения концентрации кальция на астроцитах в текущем временном шаге.
+    		std::valarray<T> auxCa;
+    		//! Вспомогательный массив, куда записываются значения концентрации иноситол 1,4,5-трифосфата на астроцитах в текущем временном шаге.
+    		std::valarray<T> auxIP3;
+    		//! Вспомогательный массив, куда записываются значения внеклеточной концентрации нейропередатчика в окрестности нейрона в текущем временном шаге.
+    		std::valarray<T> auxG;
+    		//! Вспомогательный массив, куда записываются значения напряжения на нейроне в текущем временном шаге.
+    		std::valarray<T> auxVmbr;
+    	};
+    
+            template<typename T>
+            T J_channel(
+            	const T c1,
+    			const T v1,
+    			const T IP3,
+    			const T Ca,
+    			const T z,
+    			const T c0,
+    			const T d1,
+    			const T d5
+    		){
+            	return c1*v1 * IP3*IP3*IP3 * Ca*Ca*Ca * z*z*z * ( c0/c1 - (1.0 + 1.0/c1)*Ca ) / ( (IP3+d1)*(Ca+d5) * (IP3+d1)*(Ca+d5) * (IP3+d1)*(Ca+d5) );
+            }
+    
+            template<typename T>
+            T J_pump(const T v3, const T Ca, const T k3){
+            	return v3 * (Ca*Ca) / ( k3*k3 + Ca*Ca );
+            }
+    
+            template<typename T>
+            T J_leak(
+            	const T c1,
+    			const T v2,
+    			const T c0,
+    			const T Ca
+    		){
+            	return c1*v2 * ( c0/c1 - (1.0 + 1.0/c1)*Ca );
+            }
+    
+            template<typename T>
+            T J_in(
+            	const T v5,
+    			const T v6,
+    			const T IP3,
+    			const T k2
+    		){
+            	return v5 + v6 * IP3*IP3 / ( k2*k2 + IP3*IP3 );
+            }
+    
+            template<typename T>
+            T J_out(const T k1, const T Ca){
+            	return k1*Ca;
+            }
+    
+            template<typename T>
+            T J_Cadif(
+            	const size_t ind,
+    			const T dCa,
+    			const std::valarray<T>& CaVec,
+    			const std::valarray<bool>& astConns,
+    			const size_t Nastr
+    		){
+            	T Jsum = 0.0;
+            	const T Ca = CaVec[ind];
+            	const size_t shift = Nastr*ind;
+    
+            	for(size_t i=0; i < Nastr; ++i){
+            		if (astConns[i + shift])
+            			Jsum += (CaVec[i] - Ca);
+            	}
+            	return Jsum*dCa;
+            }
+    
+            template<typename T>
+            T F_Ca(
+            	const size_t ind,
+    			const std::valarray<T>& Ca,
+    			const T IP3,
+    			const T z,
+    
+            	const T c1,
+    			const T v1,
+    			const T c0,
+    			const T d1,
+    			const T d5,
+    			const T v3,
+    			const T k3,
+    			const T v2,
+    			const T v5,
+    			const T v6,
+    			const T k2,
+    			const T k1,
+    			const T dCa,
+    			const std::valarray<bool>& astConns,
+    			const size_t Nastr
+    		){
+            	return J_channel(c1, v1, IP3, Ca[ind], z, c0, d1, d5)
+            		 - J_pump(v3, Ca[ind], k3)
+    				 + J_leak(c1, v2, c0, Ca[ind])
+    				 + J_in(v5, v6, IP3, k2)
+    				 - J_out(k1, Ca[ind])
+    				 + J_Cadif(ind, dCa, Ca, astConns, Nastr);
+            }
+    
+       // --------------------- F_IP3
+    
+            template<typename T>
+            T J_PLC(
+            	const T v4,
+    			const T Ca,
+    			const T alpha,
+    			const T k4
+    		){
+            	return v4 * ( Ca + (1.0-alpha)*k4 ) / (Ca + k4);
+            }
+    
+            template<typename T>
+            T J_IP3dif(
+            	const size_t ind,
+    			const T dIP3,
+    			const std::valarray<T>& IP3Vec,
+    			const std::valarray<bool>& astConns,
+    			const size_t Nastr
+    		){
+            	T Jsum = 0.0;
+            	const T IP3 = IP3Vec[ind];
+            	const size_t shift = Nastr*ind;
+    
+            	for(size_t i=0; i < Nastr; ++i){
+            		if (astConns[i + shift])
+            			Jsum += (IP3Vec[i] - IP3);
+            	}
+            	return dIP3*Jsum;
+            }
+    
+            template<typename T>
+            T J_Glu(
+            	const size_t ind,
+    			const T alphaGlu,
+    			const std::valarray<T>& G,
+    			const std::valarray<T>& wAstrNeurs,
+    			const size_t Nneurs,
+    			const size_t Nastr
+    		){
+            	T sumNeuromed = 0.0;
+    
+            	for(size_t i=0; i < Nneurs; ++i){
+            		if (wAstrNeurs[ind + i*Nastr] != 0.0){
+            			sumNeuromed += G[i];
+            		}
+            	}
+    
+            	return alphaGlu / ( 1.0 + exp( - (sumNeuromed-0.4) / 0.01) );
+            }
+    
+            template<typename T>
+            T F_IP3(
+            	const size_t ind,
+    			const T Ca,
+    			const std::valarray<T>& IP3,
+    			const std::valarray<T>& G,
+    
+    			const T v4,
+    			const T alpha,
+    			const T k4,
+    			const T dIP3,
+    			const T alphaGlu,
+    			const T IP3ast,
+    			const T tauIP3,
+    			const std::valarray<bool>& astConns,
+    			const std::valarray<T>& wAstrNeurs,
+    			const size_t Nastr,
+    			const size_t Nneurs
+    		){
+            	return (IP3ast - IP3[ind])/tauIP3
+            		   + J_PLC(v4, Ca, alpha, k4)
+    				   + J_IP3dif(ind, dIP3, IP3, astConns, Nastr)
+    				   + J_Glu(ind, alphaGlu, G, wAstrNeurs, Nneurs, Nastr);
+            }
+    
+       // -------------------- F_z
+    
+            template<typename T>
+            T F_z(
+            	const T Ca,
+    			const T IP3,
+    			const T z,
+    
+            	const T a2,
+    			const T d2,
+    			const T d1,
+    			const T d3
+    		){
+            	return a2 * ( d2 * (IP3+d1) / (IP3+d3) * (1-z) - Ca*z );
+            }
+    
+       // -------------------- F_G
+    
+            template<typename T>
+            T Hpot(const T Vmbr){
+            	return 1.0 / ( 1.0 + exp( -Vmbr/0.5 ) );
+            }
+    
+            template<typename T>
+            T F_G(
+            	const T alphaG,
+    			const T G,
+    			const T bettaG,
+    			const T Vmbr
+    		){
+            	return -alphaG * G + bettaG * Hpot(Vmbr);
+            }
+    
+       // -------------------- F_m
+    
+            template<typename T>
+            T alphaM(const T Vmbr){
+            	if ( std::abs(40.0 + Vmbr) < mev ){
+            		return 1.0 / ( 1.0 - (40.0 + Vmbr)*0.05 );
+            	}
+            	else{
+            		return 0.1 * (40.0 + Vmbr) / ( 1.0 - exp( -(40.0+Vmbr)/10.0 ) );
+            	}
+            }
+    
+            template<typename T>
+            T bettaM(const T Vmbr, const T VReset){
+            	return 4.0 * exp( -(Vmbr-VReset) / 18.0 );
+            }
+    
+            template<typename T>
+            T alphaM_HH(const T Vmbr, const T VReset){
+            	return ( 2.5 - 0.1 * (Vmbr - VReset) ) /
+            		   ( exp( 2.5 - 0.1*(Vmbr - VReset) ) - 1.0 );		// fix the special point
+            }
+    
+            template<typename T>
+            T bettaM_HH(const T Vmbr, const T VReset){
+            	return 4.0 * exp( -( Vmbr - VReset ) / 18.0 );
+            }
+    
+            template<typename T>
+            T F_m(const T Vmbr, const T m,
+            	  const T VReset){
+            	return alphaM(Vmbr) * (1.0 - m) - bettaM(Vmbr, VReset) * m;
+            	//return alphaM_HH(Vmbr, VReset) * (1.0 - m) - bettaM_HH(Vmbr, VReset) * m;
+            }
+    
+      // --------------------- F_h
+    
+            template<typename T>
+            T alphaH(const T Vmbr, const T VReset){
+            	return 0.07 * exp( -(Vmbr - VReset)/20.0 );
+            }
+    
+            template<typename T>
+            T bettaH(const T Vmbr){
+            	return 1.0 / ( 1.0 + exp( -(Vmbr + 35.0)/10.0 ) );
+            }
+    
+            template<typename T>
+            T alphaH_HH(const T Vmbr, const T VReset){
+            	return 0.07 * exp( -(Vmbr - VReset) / 20.0 );
+            }
+    
+            template<typename T>
+            T bettaH_HH(const T Vmbr, const T VReset){
+            	return 1.0 / ( exp( 3.0 - 0.1 * (Vmbr - VReset) ) + 1.0 );
+            }
+    
+            template<typename T>
+            T F_h(const T Vmbr, const T h,
+            	  const T VReset){
+            	return alphaH(Vmbr, VReset) * (1.0 - h) - bettaH(Vmbr) * h;
+            	//return alphaH_HH(Vmbr, VReset) * (1.0 - h) - bettaH_HH(Vmbr, VReset) * h;
+            }
+    
+       // -------------------- F_n
+    
+            template<typename T>
+            T alphaN(const T Vmbr){
+            	if ( std::abs(55.0 + Vmbr) < mev ){
+            		return 1.0 / (10.0  - (55.0 + Vmbr)*0.5);
+            	}
+            	else{
+            		return ( 0.01 * (55.0 + Vmbr) ) / ( 1.0 - exp( -(Vmbr + 55.0)/10.0 ) );
+            	}
+
+            }
+    
+            template<typename T>
+            T bettaN(const T Vmbr, const T VReset){
+            	return 0.125 * exp( -(Vmbr - VReset)/80.0 );
+            }
+    
+            template<typename T>
+            T alphaN_HH(const T Vmbr, const T VReset){
+            	return ( 0.1 - 0.01 * (Vmbr - VReset) ) / ( exp( 1.0 - 0.1 * (Vmbr - VReset) ) - 1.0 );	// fix the special point
+            }
+    
+            template<typename T>
+            T bettaN_HH(const T Vmbr, const T VReset){
+            	return 0.125 * exp( - (Vmbr - VReset) / 80.0 );
+            }
+    
+            template<typename T>
+            T F_n(const T Vmbr, const T n,
+            	  const T VReset){
+            	return alphaN(Vmbr) * (1.0 - n) - bettaN(Vmbr, VReset) * n;
+            	//return alphaN_HH(Vmbr, VReset) * (1.0 - n) - bettaN_HH(Vmbr, VReset) * n;
+            }
+    
+       // -------------------- F_mbr
+    
+            template<typename T>
+            T I_neurs(
+            	const size_t ind,
+    			const std::valarray<T>& Ca,
+    			const std::valarray<T>& Vmbr,
+    
+    			const std::valarray<T>& wConns,
+    			const std::valarray<T>& wAstrNeurs,
+            	const T Esyn,
+    			const T theta_syn,
+    			const T k_syn,
+    			const size_t Nastr,
+    			const size_t Nneurs
+    		){
+            	T sumI = 0.0;
+            	T vsum;
+            	T EsynTMP;
+            	T koeff;
+
+            	size_t counterSinConn = 0;
+            	for(size_t l=0; l < Nneurs; ++l){
+            		vsum = 0.0;
+            		for(size_t i=0; i < Nastr; ++i){
+            			vsum += wAstrNeurs[i + l*Nastr]*Ca[i];
+            		}
+    
+            		if (wConns[l + ind*Nneurs] > 0.0)
+            			EsynTMP = 0.0;
+            		else
+            			EsynTMP = Esyn;
+
+            		if ( wConns[l + ind*Nneurs] != 0.0 )
+            			++counterSinConn;
+
+            		sumI += fabs(wConns[l + ind*Nneurs]) * ( 1.0 + vsum ) * (Vmbr[ind] - EsynTMP) / ( 1.0 + exp( - ( Vmbr[l] - theta_syn ) / k_syn ) );
+            	}
+
+            	return sumI / static_cast<T>( (counterSinConn ? counterSinConn : 1) );
+            }
+    
+            template<typename T>
+            void newIstim(
+            	std::valarray<T>& Istim,
+    			std::valarray<T>& nextTimeEvent,
+    			std::mt19937& mtDev,
+    			std::uniform_real_distribution<T>& oneDist,
+    			std::uniform_real_distribution<T>& Idistribution,
+    			const T frequency,
+    			const T duration,
+    			const T timeNow,
+    			const size_t Nneurs
+    		){
+            	for(size_t i=0; i < Nneurs; ++i){
+            		if (( timeNow >= nextTimeEvent[i] ) &&
+            			( Istim[i] != 0.0 ) &&
+    					( timeNow < (nextTimeEvent[i] + duration) )) {}
+            		else if (( timeNow >= (nextTimeEvent[i] + duration) ) &&
+            				 ( Istim[i] != 0.0 )){
+    
+            			RD::createPuassonEvent(nextTimeEvent[i], mtDev, oneDist, timeNow, frequency, duration);
+            			if ( timeNow < (nextTimeEvent[i] + duration) )
+            				Istim[i] = 0.0;
+    
+            		}
+            		else if ( timeNow >= nextTimeEvent[i] ){
+            			Istim[i] = Idistribution(mtDev);
+            		}
+            	}
+            }
+    
+            template<typename T>
+            T F_mbr(
+            	const size_t ind,
+    			const std::valarray<T>& Vmbr,
+    			const T m,
+    			const T h,
+    			const T n,
+    			const T Istim,
+    			const std::valarray<T>& Ca,
+    
+            	const T Cm,
+    			const T g_Na,
+    			const T E_Na,
+    			const T g_K,
+    			const T E_K,
+    			const T g_leak,
+    			const T E_leak,
+    			const T Iapp,
+    			const std::valarray<T>& wConns,
+    			const std::valarray<T>& wAstrNeurs,
+    			const T Esyn,
+    			const T theta_syn,
+    			const T k_syn,
+    
+    			const size_t Nastr,
+    			const size_t Nneurs
+    		){
+            	return 1.0/Cm * ( - g_Na*m*m*m*h * (Vmbr[ind] - E_Na)
+            					  - g_K*n*n*n*n * (Vmbr[ind] - E_K)
+    							  - g_leak * (Vmbr[ind] - E_leak)
+    							  + Iapp + Istim
+    							  - I_neurs(ind, Ca, Vmbr, wConns, wAstrNeurs, Esyn, theta_syn, k_syn, Nastr, Nneurs)
+    							);
+            }
+    
+       // -------------------- RungeKutta
+    
+            template<typename T>
+            void doAuxVariables(
+            		std::valarray<T>& auxCa,
+    				const std::valarray<T>& Ca,
+    				std::valarray<T>& auxG,
+    				const std::valarray<T>& G,
+    				std::valarray<T>& auxIP3,
+    				const std::valarray<T>& IP3,
+    				std::valarray<T>& auxVmbr,
+    				const std::valarray<T>& Vmbr,
+    				const T RKstep,
+    
+    				const std::valarray<T>& pCa_old,
+    				const std::valarray<T>& pG_old,
+    				const std::valarray<T>& pIP3_old,
+    				const std::valarray<T>& pVmbr_old,
+    
+    				const size_t Nastr,
+    				const size_t Nneurs
+            ){
+            	for(size_t i=0; i < Nastr; ++i){
+            		auxCa[i] = Ca[i] + RKstep * pCa_old[i];
+            		auxIP3[i] = IP3[i] + RKstep * pIP3_old[i];
+            	}
+            	for(size_t i=0; i < Nneurs; ++i){
+            		auxVmbr[i] = Vmbr[i] + RKstep * pVmbr_old[i];
+            		auxG[i] = G[i] + RKstep * pG_old[i];
+            	}
+            }
+    
+            template<typename T>
+            void RungeKutta_1(
+            		AuxilaryVariablesUNN270117<T>& RK,
+    				const size_t& nNeurs,
+    				const size_t& Nastr,
+    				const T& VNeursReset,
+    
+    				const T& Cm,
+    				const T& g_Na,
+    				const T& g_K,
+    				const T& g_leak,
+    				const T& Iapp,
+    				const T& E_Na,
+    				const T& E_K,
+    				const T& E_leak,
+    				const T& Esyn,
+    				const T& theta_syn,
+    				const T& k_syn,
+    
+    				const T& alphaGlu,
+    				const T& alphaG,
+    				const T& bettaG,
+    
+    				const T& tauIP3,
+    				const T& IP3ast,
+    				const T& a2,
+    				const T& d1,
+    				const T& d2,
+    				const T& d3,
+    				const T& d5,
+    
+    				const T& dCa,
+    				const T& dIP3,
+    				const T& c0,
+    				const T& c1,
+    				const T& v1,
+    				const T& v4,
+    				const T& alpha,
+    				const T& k4,
+    				const T& v2,
+    				const T& v3,
+    				const T& k3,
+    				const T& v5,
+    				const T& v6,
+    				const T& k2,
+    				const T& k1,
+    
+    				const std::valarray<T>& wConns,
+    				const std::valarray<T>& wAstrNeurs,
+    				const std::valarray<bool>& astrConns,
+    
+    				const std::valarray<T>& Vmbr,
+    				const std::valarray<T>& m,
+    				const std::valarray<T>& h,
+    				const std::valarray<T>& n,
+    				const std::valarray<T>& Istim,
+    				const std::valarray<T>& G,
+    
+    				const std::valarray<T>& Ca,
+    				const std::valarray<T>& IP3,
+    				const std::valarray<T>& z
+    		){
+            	for(size_t i=0; i < Nastr; ++i){
+            		RK.pCa_1[i] = F_Ca(i, Ca, IP3[i], z[i], c1, v1, c0, d1, d5, v3, k3, v2, v5, v6, k2, k1, dCa, astrConns, Nastr);
+    
+            		RK.pIP3_1[i] = F_IP3(i, Ca[i], IP3, G, v4, alpha, k4, dIP3, alphaGlu, IP3ast, tauIP3, astrConns, wAstrNeurs, Nastr, nNeurs);
+            	}
+
+				#pragma omp parallel for
+            	for(size_t i=0; i < Nastr; ++i){
+            		RK.pz_1[i] = F_z(Ca[i], IP3[i], z[i], a2, d2, d1, d3);
+            	}
+
+				#pragma omp parallel for
+            	for(size_t k=0; k < nNeurs; ++k){
+            		RK.pG_1[k] = F_G(alphaG, G[k], bettaG, Vmbr[k]);
+    
+            		RK.pm_1[k] = F_m(Vmbr[k], m[k], VNeursReset);
+    
+            		RK.ph_1[k] = F_h(Vmbr[k], h[k], VNeursReset);
+
+            		RK.pn_1[k] = F_n(Vmbr[k], n[k], VNeursReset);
+            	}
+
+            	for(size_t k=0; k < nNeurs; ++k){
+            		RK.pV_1[k] = F_mbr(k, Vmbr, m[k], h[k], n[k], Istim[k], Ca,
+            				Cm, g_Na, E_Na, g_K, E_K, g_leak, E_leak, Iapp, wConns, wAstrNeurs, Esyn, theta_syn, k_syn, Nastr, nNeurs);
+            	}
+            }
+    
+            template<typename T>
+            void RungeKutta_2(
+            		AuxilaryVariablesUNN270117<T>& RK,
+    				const size_t& nNeurs,
+    				const size_t& Nastr,
+    				const T& VNeursReset,
+    
+    				const T& Cm,
+    				const T& g_Na,
+    				const T& g_K,
+    				const T& g_leak,
+    				const T& Iapp,
+    				const T& E_Na,
+    				const T& E_K,
+    				const T& E_leak,
+    				const T& Esyn,
+    				const T& theta_syn,
+    				const T& k_syn,
+    
+    				const T& alphaGlu,
+    				const T& alphaG,
+    				const T& bettaG,
+    
+    				const T& tauIP3,
+    				const T& IP3ast,
+    				const T& a2,
+    				const T& d1,
+    				const T& d2,
+    				const T& d3,
+    				const T& d5,
+    
+    				const T& dCa,
+    				const T& dIP3,
+    				const T& c0,
+    				const T& c1,
+    				const T& v1,
+    				const T& v4,
+    				const T& alpha,
+    				const T& k4,
+    				const T& v2,
+    				const T& v3,
+    				const T& k3,
+    				const T& v5,
+    				const T& v6,
+    				const T& k2,
+    				const T& k1,
+    
+    				const std::valarray<T>& wConns,
+    				const std::valarray<T>& wAstrNeurs,
+    				const std::valarray<bool>& astrConns,
+    
+    				const std::valarray<T>& Vmbr,
+    				const std::valarray<T>& m,
+    				const std::valarray<T>& h,
+    				const std::valarray<T>& n,
+    				const std::valarray<T>& Istim,
+    				const std::valarray<T>& G,
+    
+    				const std::valarray<T>& Ca,
+    				const std::valarray<T>& IP3,
+    				const std::valarray<T>& z,
+    
+    				const T dt
+    		){
+            	T stepRK = dt*0.5;
+            	for(size_t i=0; i < Nastr; ++i){
+            		RK.pCa_2[i] = F_Ca(
+    									i,
+    									RK.auxCa,
+    									IP3[i] + stepRK * RK.pIP3_1[i],
+    									z[i] + stepRK * RK.pz_1[i],
+    									c1, v1, c0, d1, d5, v3, k3, v2, v5, v6, k2, k1, dCa,
+    									astrConns, Nastr
+    							  );
+            		RK.pIP3_2[i] = F_IP3(
+    									i,
+    									Ca[i] + stepRK * RK.pCa_1[i],
+    									RK.auxIP3,
+    									RK.auxG,
+    									v4, alpha, k4, dIP3, alphaGlu, IP3ast, tauIP3,
+    									astrConns, wAstrNeurs, Nastr, nNeurs
+            					   );
+            	}
+
+				#pragma omp parallel for
+            	for(size_t i=0; i < Nastr; ++i){
+            		RK.pz_2[i] = F_z(
+            							Ca[i] + stepRK * RK.pCa_1[i],
+    									IP3[i] + stepRK * RK.pIP3_1[i],
+    									z[i] + stepRK * RK.pz_1[i],
+    									a2, d2, d1, d3
+            					 );
+            	}
+
+				#pragma omp parallel for
+            	for(size_t k=0; k < nNeurs; ++k){
+            		RK.pG_2[k] = F_G(
+            							alphaG,
+    									G[k] + stepRK * RK.pG_1[k],
+    									bettaG,
+    									Vmbr[k] + stepRK * RK.pV_1[k]
+            					 );
+            		RK.pm_2[k] = F_m(
+            							Vmbr[k] + stepRK * RK.pV_1[k],
+    									m[k] + stepRK * RK.pm_1[k],
+    									VNeursReset
+            					 );
+            		RK.ph_2[k] = F_h(
+            							Vmbr[k] + stepRK * RK.pV_1[k],
+    									h[k] + stepRK * RK.ph_1[k],
+    									VNeursReset
+            					 );
+            		RK.pn_2[k] = F_n(
+            							Vmbr[k] + stepRK * RK.pV_1[k],
+    									n[k] + stepRK * RK.pn_1[k],
+    									VNeursReset
+            					 );
+            	}
+
+            	for(size_t k=0; k < nNeurs; ++k){
+            		RK.pV_2[k] = F_mbr(
+            							k,
+    									RK.auxVmbr,
+    									m[k] + stepRK * RK.pm_1[k],
+    									h[k] + stepRK * RK.ph_1[k],
+    									n[k] + stepRK * RK.pn_1[k],
+    									Istim[k],
+    									RK.auxCa,
+    									Cm, g_Na, E_Na, g_K, E_K, g_leak, E_leak, Iapp,
+    									wConns, wAstrNeurs, Esyn, theta_syn, k_syn, Nastr, nNeurs
+            					 );
+            	}
+            }
+    
+            template<typename T>
+            void RungeKutta_3(
+            		AuxilaryVariablesUNN270117<T>& RK,
+    				const size_t& nNeurs,
+    				const size_t& Nastr,
+    				const T& VNeursReset,
+    
+    				const T& Cm,
+    				const T& g_Na,
+    				const T& g_K,
+    				const T& g_leak,
+    				const T& Iapp,
+    				const T& E_Na,
+    				const T& E_K,
+    				const T& E_leak,
+    				const T& Esyn,
+    				const T& theta_syn,
+    				const T& k_syn,
+    
+    				const T& alphaGlu,
+    				const T& alphaG,
+    				const T& bettaG,
+    
+    				const T& tauIP3,
+    				const T& IP3ast,
+    				const T& a2,
+    				const T& d1,
+    				const T& d2,
+    				const T& d3,
+    				const T& d5,
+    
+    				const T& dCa,
+    				const T& dIP3,
+    				const T& c0,
+    				const T& c1,
+    				const T& v1,
+    				const T& v4,
+    				const T& alpha,
+    				const T& k4,
+    				const T& v2,
+    				const T& v3,
+    				const T& k3,
+    				const T& v5,
+    				const T& v6,
+    				const T& k2,
+    				const T& k1,
+    
+    				const std::valarray<T>& wConns,
+    				const std::valarray<T>& wAstrNeurs,
+    				const std::valarray<bool>& astrConns,
+    
+    				const std::valarray<T>& Vmbr,
+    				const std::valarray<T>& m,
+    				const std::valarray<T>& h,
+    				const std::valarray<T>& n,
+    				const std::valarray<T>& Istim,
+    				const std::valarray<T>& G,
+    
+    				const std::valarray<T>& Ca,
+    				const std::valarray<T>& IP3,
+    				const std::valarray<T>& z,
+    
+    				const T dt
+    		){
+            	T stepRK = dt*0.5;
+            	for(size_t i=0; i < Nastr; ++i){
+            		RK.pCa_3[i] = F_Ca(
+    									i,
+    									RK.auxCa,
+    									IP3[i] + stepRK * RK.pIP3_2[i],
+    									z[i] + stepRK * RK.pz_2[i],
+    									c1, v1, c0, d1, d5, v3, k3, v2, v5, v6, k2, k1, dCa,
+    									astrConns, Nastr
+    							  );
+            		RK.pIP3_3[i] = F_IP3(
+    									i,
+    									Ca[i] + stepRK * RK.pCa_2[i],
+    									RK.auxIP3,
+    									RK.auxG,
+    									v4, alpha, k4, dIP3, alphaGlu, IP3ast, tauIP3,
+    									astrConns, wAstrNeurs, Nastr, nNeurs
+            					   );
+            	}
+
+				#pragma omp parallel for
+            	for(size_t i=0; i < Nastr; ++i){
+            		RK.pz_3[i] = F_z(
+            							Ca[i] + stepRK * RK.pCa_2[i],
+    									IP3[i] + stepRK * RK.pIP3_2[i],
+    									z[i] + stepRK * RK.pz_2[i],
+    									a2, d2, d1, d3
+            					 );
+            	}
+
+				#pragma omp parallel for
+            	for(size_t k=0; k < nNeurs; ++k){
+            		RK.pG_3[k] = F_G(
+            							alphaG,
+    									G[k] + stepRK * RK.pG_2[k],
+    									bettaG,
+    									Vmbr[k] + stepRK * RK.pV_2[k]
+            					 );
+            		RK.pm_3[k] = F_m(
+            							Vmbr[k] + stepRK * RK.pV_2[k],
+    									m[k] + stepRK * RK.pm_2[k],
+    									VNeursReset
+            					 );
+            		RK.ph_3[k] = F_h(
+            							Vmbr[k] + stepRK * RK.pV_2[k],
+    									h[k] + stepRK * RK.ph_2[k],
+    									VNeursReset
+            					 );
+            		RK.pn_3[k] = F_n(
+            							Vmbr[k] + stepRK * RK.pV_2[k],
+    									n[k] + stepRK * RK.pn_2[k],
+    									VNeursReset
+            					 );
+            	}
+
+            	for(size_t k=0; k < nNeurs; ++k){
+            		RK.pV_3[k] = F_mbr(
+            							k,
+    									RK.auxVmbr,
+    									m[k] + stepRK * RK.pm_2[k],
+    									h[k] + stepRK * RK.ph_2[k],
+    									n[k] + stepRK * RK.pn_2[k],
+    									Istim[k],
+    									RK.auxCa,
+    									Cm, g_Na, E_Na, g_K, E_K, g_leak, E_leak, Iapp,
+    									wConns, wAstrNeurs, Esyn, theta_syn, k_syn, Nastr, nNeurs
+            					 );
+            	}
+            }
+    
+            template<typename T>
+            void RungeKutta_4(
+            		AuxilaryVariablesUNN270117<T>& RK,
+    				const size_t& nNeurs,
+    				const size_t& Nastr,
+    				const T& VNeursReset,
+    
+    				const T& Cm,
+    				const T& g_Na,
+    				const T& g_K,
+    				const T& g_leak,
+    				const T& Iapp,
+    				const T& E_Na,
+    				const T& E_K,
+    				const T& E_leak,
+    				const T& Esyn,
+    				const T& theta_syn,
+    				const T& k_syn,
+    
+    				const T& alphaGlu,
+    				const T& alphaG,
+    				const T& bettaG,
+    
+    				const T& tauIP3,
+    				const T& IP3ast,
+    				const T& a2,
+    				const T& d1,
+    				const T& d2,
+    				const T& d3,
+    				const T& d5,
+    
+    				const T& dCa,
+    				const T& dIP3,
+    				const T& c0,
+    				const T& c1,
+    				const T& v1,
+    				const T& v4,
+    				const T& alpha,
+    				const T& k4,
+    				const T& v2,
+    				const T& v3,
+    				const T& k3,
+    				const T& v5,
+    				const T& v6,
+    				const T& k2,
+    				const T& k1,
+    
+    				const std::valarray<T>& wConns,
+    				const std::valarray<T>& wAstrNeurs,
+    				const std::valarray<bool>& astrConns,
+    
+    				const std::valarray<T>& Vmbr,
+    				const std::valarray<T>& m,
+    				const std::valarray<T>& h,
+    				const std::valarray<T>& n,
+    				const std::valarray<T>& Istim,
+    				const std::valarray<T>& G,
+    
+    				const std::valarray<T>& Ca,
+    				const std::valarray<T>& IP3,
+    				const std::valarray<T>& z,
+    
+    				const T dt
+    		){
+            	T stepRK = dt;
+            	for(size_t i=0; i < Nastr; ++i){
+            		RK.pCa_4[i] = F_Ca(
+    									i,
+    									RK.auxCa,
+    									IP3[i] + stepRK * RK.pIP3_3[i],
+    									z[i] + stepRK * RK.pz_3[i],
+    									c1, v1, c0, d1, d5, v3, k3, v2, v5, v6, k2, k1, dCa,
+    									astrConns, Nastr
+    							  );
+            		RK.pIP3_4[i] = F_IP3(
+    									i,
+    									Ca[i] + stepRK * RK.pCa_3[i],
+    									RK.auxIP3,
+    									RK.auxG,
+    									v4, alpha, k4, dIP3, alphaGlu, IP3ast, tauIP3,
+    									astrConns, wAstrNeurs, Nastr, nNeurs
+            					   );
+            	}
+
+				#pragma omp parallel for
+            	for(size_t i=0; i < Nastr; ++i){
+            		RK.pz_4[i] = F_z(
+            							Ca[i] + stepRK * RK.pCa_3[i],
+    									IP3[i] + stepRK * RK.pIP3_3[i],
+    									z[i] + stepRK * RK.pz_3[i],
+    									a2, d2, d1, d3
+            					 );
+            	}
+
+				#pragma omp parallel for
+            	for(size_t k=0; k < nNeurs; ++k){
+            		RK.pG_4[k] = F_G(
+            							alphaG,
+    									G[k] + stepRK * RK.pG_3[k],
+    									bettaG,
+    									Vmbr[k] + stepRK * RK.pV_3[k]
+            					 );
+            		RK.pm_4[k] = F_m(
+            							Vmbr[k] + stepRK * RK.pV_3[k],
+    									m[k] + stepRK * RK.pm_3[k],
+    									VNeursReset
+            					 );
+            		RK.ph_4[k] = F_h(
+            							Vmbr[k] + stepRK * RK.pV_3[k],
+    									h[k] + stepRK * RK.ph_3[k],
+    									VNeursReset
+            					 );
+            		RK.pn_4[k] = F_n(
+            							Vmbr[k] + stepRK * RK.pV_3[k],
+    									n[k] + stepRK * RK.pn_3[k],
+    									VNeursReset
+            					 );
+            	}
+
+            	for(size_t k=0; k < nNeurs; ++k){
+            		RK.pV_4[k] = F_mbr(
+            							k,
+    									RK.auxVmbr,
+    									m[k] + stepRK * RK.pm_3[k],
+    									h[k] + stepRK * RK.ph_3[k],
+    									n[k] + stepRK * RK.pn_3[k],
+    									Istim[k],
+    									RK.auxCa,
+    									Cm, g_Na, E_Na, g_K, E_K, g_leak, E_leak, Iapp,
+    									wConns, wAstrNeurs, Esyn, theta_syn, k_syn, Nastr, nNeurs
+            					 );
+            	}
+            }
+    
+            template<typename T>
+            void changeValues(
+            		const AuxilaryVariablesUNN270117<T>& RK,
+        			std::valarray<T>& VNeurs,
+        			std::valarray<T>& m,
+        			std::valarray<T>& h,
+        			std::valarray<T>& n,
+        			std::valarray<T>& G,
+    
+        			std::valarray<T>& Ca,
+        			std::valarray<T>& IP3,
+        			std::valarray<T>& z,
+    
+    				const size_t Nastr,
+    				const size_t Nneurs,
+    				const T dt
+            ){
+            	const T avRK = dt/6.0;
+
+            	#pragma omp parallel for
+            	for(size_t i=0; i < Nastr; ++i){
+            		Ca[i] += avRK*( RK.pCa_1[i] + 2.0 * RK.pCa_2[i] + 2.0 * RK.pCa_3[i] + RK.pCa_4[i] );
+            		IP3[i] += avRK*( RK.pIP3_1[i] + 2.0 * RK.pIP3_2[i] + 2.0 * RK.pIP3_3[i] + RK.pIP3_4[i] );
+            		z[i] += avRK*( RK.pz_1[i] + 2.0 * RK.pz_2[i] + 2.0 * RK.pz_3[i] + RK.pz_4[i] );
+            	}
+
+				#pragma omp parallel for
+            	for(size_t k=0; k < Nneurs; ++k){
+            		G[k] += avRK*( RK.pG_1[k] + 2.0 * RK.pG_2[k] + 2.0 * RK.pG_3[k] + RK.pG_4[k] );
+            		m[k] += avRK*( RK.pm_1[k] + 2.0 * RK.pm_2[k] + 2.0 * RK.pm_3[k] + RK.pm_4[k] );
+            		h[k] += avRK*( RK.ph_1[k] + 2.0 * RK.ph_2[k] + 2.0 * RK.ph_3[k] + RK.ph_4[k] );
+            		n[k] += avRK*( RK.pn_1[k] + 2.0 * RK.pn_2[k] + 2.0 * RK.pn_3[k] + RK.pn_4[k] );
+            		VNeurs[k] += avRK*( RK.pV_1[k] + 2.0 * RK.pV_2[k] + 2.0 * RK.pV_3[k] + RK.pV_4[k] );
+            	}
+            }
+    
+        #if DEBUG >= 1
+            class MyOutStream : public std::ofstream{
+            public:
+            	MyOutStream(const std::string& str)
+            : std::ofstream(str){}
+            	~MyOutStream(){
+            		close();
+            	}
+            };
+    
+            std::string doBaseName(const std::string& name, const size_t Nneurs){
+            	std::stringstream vss;
+            	vss << name << Nneurs;
+            	return vss.str();
+            }
+    
+        #endif
+    
+    } // namespace NARK45
+
+
+        template<typename T> void SolverImplCPU<T>::solveUNN270117(
+        	const size_t& nNeurs,
+			const size_t& nNeursExc,
+			const size_t& Nastr,
+			const T& VNeursPeak,
+			const T& VNeursReset,
+			const T& dt,
+			const T& st,
+			T& t,
+
+			const T& Cm,
+			const T& g_Na,
+			const T& g_K,
+			const T& g_leak,
+			const T& Iapp,
+			const T& E_Na,
+			const T& E_K,
+			const T& E_L,
+			const T& Esyn,
+			const T& theta_syn,
+			const T& k_syn,
+
+			const T& alphaGlu,
+			const T& alphaG,
+			const T& bettaG,
+
+			const T& tauIP3,
+			const T& IP3ast,
+			const T& a2,
+			const T& d1,
+			const T& d2,
+			const T& d3,
+			const T& d5,
+
+			const T& dCa,
+			const T& dIP3,
+			const T& c0,
+			const T& c1,
+			const T& v1,
+			const T& v4,
+			const T& alpha,
+			const T& k4,
+			const T& v2,
+			const T& v3,
+			const T& k3,
+			const T& v5,
+			const T& v6,
+			const T& k2,
+			const T& k1,
+
+			const T& IstimAmplitude,
+			const T& IstimFrequency,
+			const T& IstimDuration,
+			std::valarray<T>& nextTimeEvent,
+			std::valarray<T>& Istim,
+
+			const std::valarray<T>& wConns,
+			const std::valarray<T>& wAstrNeurs,
+			const std::valarray<bool>& astrConns,
+
+			std::valarray<T>& VNeurs,
+			std::valarray<bool>& mNeurs,
+			std::valarray<T>& INeurs,
+			std::valarray<T>& m,
+			std::valarray<T>& h,
+			std::valarray<T>& n,
+			std::valarray<T>& G,
+
+			std::valarray<T>& Ca,
+			std::valarray<T>& IP3,
+			std::valarray<T>& z,
+
+			std::deque<std::pair<T,std::valarray<T>>>& oscillograms
+        ){
+
+            using namespace NARK45;
+
+			#ifdef TimeDebug
+				auto bTime = std::chrono::steady_clock::now();
+				auto sst = t;
+			#endif
+
+        	// AUXILARY PARAMETERS INITIALIZATION
+        	AuxilaryVariablesUNN270117<T> RK;
+        	RK.allocateMemoryForAuxiliaryVariables(nNeurs, Nastr);
+
+        	RK.Idistribution = std::uniform_real_distribution<T>(-IstimAmplitude, IstimAmplitude);
+
+
+        	// TIME STEPS
+        	for(; t < st; t+=dt){
+        		newIstim(Istim, nextTimeEvent, RK.mtDev, RK.oneDist, RK.Idistribution, IstimFrequency, IstimDuration, t, nNeurs);
+
+            	RungeKutta_1<T>(RK, nNeurs, Nastr, VNeursReset, Cm, g_Na, g_K, g_leak, Iapp, E_Na, E_K, E_L, Esyn,
+            			theta_syn, k_syn, alphaGlu, alphaG, bettaG, tauIP3, IP3ast, a2, d1, d2, d3, d5, dCa, dIP3, c0,
+						c1, v1, v4, alpha, k4, v2, v3, k3, v5, v6, k2, k1, wConns, wAstrNeurs, astrConns, VNeurs, m, h, n, Istim, G, Ca, IP3, z);
+
+            	doAuxVariables<T>(RK.auxCa, Ca, RK.auxG, G, RK.auxIP3, IP3, RK.auxVmbr, VNeurs,
+            			static_cast<T>(dt*0.5), RK.pCa_1, RK.pG_1, RK.pIP3_1, RK.pV_1, Nastr, nNeurs);
+
+            	RungeKutta_2<T>(RK, nNeurs, Nastr, VNeursReset, Cm, g_Na, g_K, g_leak, Iapp, E_Na, E_K, E_L, Esyn,
+            			theta_syn, k_syn, alphaGlu, alphaG, bettaG, tauIP3, IP3ast, a2, d1, d2, d3, d5, dCa, dIP3, c0,
+						c1, v1, v4, alpha, k4, v2, v3, k3, v5, v6, k2, k1, wConns, wAstrNeurs, astrConns, VNeurs, m, h, n, Istim, G, Ca, IP3, z,
+						dt);
+
+            	doAuxVariables<T>(RK.auxCa, Ca, RK.auxG, G, RK.auxIP3, IP3, RK.auxVmbr, VNeurs,
+            			static_cast<T>(dt*0.5), RK.pCa_2, RK.pG_2, RK.pIP3_2, RK.pV_2, Nastr, nNeurs);
+
+            	RungeKutta_3<T>(RK, nNeurs, Nastr, VNeursReset, Cm, g_Na, g_K, g_leak, Iapp, E_Na, E_K, E_L, Esyn,
+            			theta_syn, k_syn, alphaGlu, alphaG, bettaG, tauIP3, IP3ast, a2, d1, d2, d3, d5, dCa, dIP3, c0,
+						c1, v1, v4, alpha, k4, v2, v3, k3, v5, v6, k2, k1, wConns, wAstrNeurs, astrConns, VNeurs, m, h, n, Istim, G, Ca, IP3, z,
+						dt);
+
+            	doAuxVariables<T>(RK.auxCa, Ca, RK.auxG, G, RK.auxIP3, IP3, RK.auxVmbr, VNeurs,
+            			static_cast<T>(dt), RK.pCa_3, RK.pG_3, RK.pIP3_3, RK.pV_3, Nastr, nNeurs);
+
+            	RungeKutta_4<T>(RK, nNeurs, Nastr, VNeursReset, Cm, g_Na, g_K, g_leak, Iapp, E_Na, E_K, E_L, Esyn,
+            			theta_syn, k_syn, alphaGlu, alphaG, bettaG, tauIP3, IP3ast, a2, d1, d2, d3, d5, dCa, dIP3, c0,
+						c1, v1, v4, alpha, k4, v2, v3, k3, v5, v6, k2, k1, wConns, wAstrNeurs, astrConns, VNeurs, m, h, n, Istim, G, Ca, IP3, z,
+						dt);
+
+            	changeValues(RK, VNeurs, m, h, n, G, Ca, IP3, z, Nastr, nNeurs, dt);
+
+            	// WRITE IN FILES
+            	oscillograms.push_back( std::pair<T,std::valarray<T>>(t+dt, VNeurs) );
+        	}		// time steps
+
+			#ifdef TimeDebug
+				auto eTime = std::chrono::steady_clock::now();
+				auto dTime = std::chrono::duration_cast<std::chrono::milliseconds>(eTime-bTime);
+				std::cout << "Neurons: \033[31;1m" << nNeurs << "\033[0m\t";
+				std::cout << "Connects: \033[31;1m" << nNeurs*nNeurs << "\033[0m\t";
+				std::cout << "Steps: \033[31;1m" << std::ceil((st-sst)/dt) << "\033[0m\t";
+				std::cout << "solveUNN270117_CPU time \033[31;1m" << dTime.count() << "\033[0m, ms\n";
+			#endif
+        }
+
+
+}//namespace NNSimulator
+

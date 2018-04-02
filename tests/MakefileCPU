@@ -1,15 +1,19 @@
 CXX=g++
-CXXFLAGS=-std=c++14
+CXXFLAGS=-std=c++14 -fopenmp -I /common/software/boost/include/
+LIBS=-lpthread -L ${LIBSDIR} -lsqlactions -lnnsolvercputest -L /usr/lib/postgresql/9.5/lib -lpq
 SRCS=$(wildcard *.cpp)
 TRGS=$(SRCS:%.cpp=%_cpu)
-
 DPNDS=$(wildcard ../lib/solver*.hpp)
 
 all: $(TRGS)
 
+ifeq ($(HOSTNAME),master.nngu)
 $(TRGS): %_cpu: %.cpp $(DPNDS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ -L../lib/impl/cpu -lnnsolvercpu
+	$(CXX) $(CXXFLAGS) -o $@ $^ ${LIBS} -I /common/software/boost/include 
+else
+$(TRGS): %_cpu: %.cpp $(DPNDS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ ${LIBS}
+endif
 
 clean:
 	rm -f $(TRGS)
-

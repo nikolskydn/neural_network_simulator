@@ -19,3 +19,5 @@ tests/test_base_neurs_cpu
 \.cproject
 
 \.project
+
+doc/ru/
