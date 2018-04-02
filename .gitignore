@@ -7,3 +7,15 @@
 *.oscs
 nnsimulatorcpu
 nnsimulatorcuda
+
+\.settings/
+
+Debug/
+
+tests/test_base_conns_cpu
+
+tests/test_base_neurs_cpu
+
+\.cproject
+
+\.project
