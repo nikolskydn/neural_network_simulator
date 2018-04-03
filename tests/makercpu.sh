@@ -5,6 +5,13 @@ function MV {
     fi
 }
 
+function CP {
+	cp $1 $2
+	if [ $? ] ; then
+        echo -e "\033[33;2m    makercpu.sh:    copy $1 to $2 ok\033[0m"
+	fi
+}
+
 echo """
 #ifndef _NNetworkSimulatorSettingNDN2017_
 #define _NNetworkSimulatorSettingNDN2017_
@@ -40,5 +47,7 @@ make -f MakefileCPU
 MV test_nnsolvers_cpu ${BINDIR}
 MV test_unn270117_funcs_cpu ${BINDIR}
 
-MV solverUNN270117RK.in ${BINDIR}
-MV solverUNN270117RK.end ${BINDIR}
+CP solverUNN270117RK.in ${BINDIR}
+CP solverUNN270117RK.end ${BINDIR}
+CP solverpcnni2003e.in ${BINDIR}
+CP solverpcnni2003e.end ${BINDIR}
