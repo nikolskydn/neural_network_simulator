@@ -1,7 +1,7 @@
 CXX=g++
 CXXFLAGS=-std=c++14 -O3 
 LIBS=-L ${LIBSDIR} -lnnsolvercpu
-SRCS=nnsimulator.cpp ../lib/solver.hpp
+SRCS=nnsimulator.cpp
 TRG=nnsimulatorcpu
 
 all: $(TRG) 

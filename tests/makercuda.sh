@@ -5,6 +5,13 @@ function MV {
     fi
 }
 
+function CP {
+	cp $1 $2
+	if [ $? ] ; then
+		echo -e "\033[33;2m    makercuda.sh:    copy $1 to $2 ok\033[0m"
+	fi
+}
+
 echo """
 #ifndef _NNetworkSimulatorSettingNDN2017_
 #define _NNetworkSimulatorSettingNDN2017_
@@ -40,3 +47,6 @@ MV ../lib/impl/cuda/libnnsolvercudatest.so ${LIBSDIR}
 make -f MakefileCuda clean
 make -f MakefileCuda 
 MV test_nnsolvers_cuda ${BINDIR}
+
+CP solverpcnni2003e.in ${BINDIR}
+CP solverpcnni2003e.end ${BINDIR}

@@ -3,11 +3,9 @@
 #define _NNetworkSimulatorSettingNDN2017_
     // uncomment for build Cuda impl.
     //#define NN_CUDA_IMPL 
-
     // uncomment for testing
-    #define NN_TEST_SOLVERS
-
+    //#define NN_TEST_SOLVERS
     // uncomment for time measurements
-    //#define TimeDebug 
+    #define TimeDebug 
 #endif
 

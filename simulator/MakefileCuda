@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++14 -I /usr/include/postgresql/ -L/usr/local/cuda/lib64 -lcudart
+CXXFLAGS=-std=c++14 -L/usr/local/cuda/lib64 -lcudart
 SRCS=nnsimulator.cpp
 TRG=nnsimulatorcuda
 LIBS=-L ${LIBSDIR} -lnnsolvercuda

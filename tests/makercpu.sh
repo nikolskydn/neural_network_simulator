@@ -39,6 +39,7 @@ else
     echo -e "\033[32;1m    makercpu ERROR: set directory for bin\033[0m"
     exit 1
 fi
+
 make -C ../lib/impl/cpu/ clean
 make -C ../lib/impl/cpu/ libnnsolvercputest.so
 MV ../lib/impl/cpu/libnnsolvercputest.so ${LIBSDIR}
