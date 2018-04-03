@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+print "Generating .sin file ../tests/realModel_UNN270117.sin"
+print "You can use this file as in-file for cpu simulator"
+
 f = open('../tests/realModel_UNN270117.sin', 'w')
 
 f.write("""
